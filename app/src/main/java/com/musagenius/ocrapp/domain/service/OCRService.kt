@@ -18,7 +18,11 @@ interface OCRService {
     suspend fun initialize(config: OCRConfig = OCRConfig()): Result<Unit>
 
     /**
-     * Perform OCR on the given bitmap
+     * Recognizes text contained in the provided bitmap image.
+     *
+     * @param bitmap The image to perform OCR on.
+     * @param config Optional OCR configuration to use for this recognition; defaults to the service default.
+     * @return A `Result` wrapping an `OCRResult` on success, or a failure describing the error. 
      */
     suspend fun recognizeText(
         bitmap: Bitmap,
@@ -26,8 +30,11 @@ interface OCRService {
     ): Result<OCRResult>
 
     /**
-     * Perform OCR on the given bitmap with progress tracking
-     * @return Flow emitting progress updates followed by final result
+     * Performs OCR on the provided bitmap while emitting progress updates.
+     *
+     * @param bitmap The image to run OCR on.
+     * @param config Optional OCR configuration; defaults to a new OCRConfig instance.
+     * @return A Flow that emits `Result<OCRProgress>` values representing intermediate progress updates and a final `Result` containing the completed OCR result or an error.
      */
     fun recognizeTextWithProgress(
         bitmap: Bitmap,

@@ -35,7 +35,11 @@ class ProcessImageUseCase @Inject constructor(
     }
 
     /**
-     * Process an image synchronously
+     * Performs OCR on the provided bitmap using the given configuration.
+     *
+     * @param bitmap The bitmap to process.
+     * @param config OCR configuration to control recognition parameters; defaults to a new OCRConfig.
+     * @return A Result wrapping the OCR outcome: `Result.success` contains the OCRResult on success, `Result.failure` contains the error on failure.
      */
     suspend fun execute(
         bitmap: Bitmap,
@@ -45,11 +49,15 @@ class ProcessImageUseCase @Inject constructor(
     }
 
     /**
-     * Process an image from URI and extract text
-     * This overload handles Uri-to-Bitmap conversion with proper compression and orientation
-     * @param imageUri The URI of the image to process
-     * @param config OCR configuration
-     * @return Flow emitting loading, success, or error states
+     * Processes the image at the given URI and extracts text using OCR.
+     *
+     * Loads and prepares a bitmap from the provided URI, runs OCR with the given configuration,
+     * and emits processing states and the final result.
+     *
+     * @param imageUri The URI of the image to process.
+     * @param config OCR configuration; its `maxImageDimension` is used when loading the bitmap.
+     * @return A Flow that emits a loading state, then a `Result` containing the `OCRResult` on success,
+     * or a failure `Result` if bitmap loading or OCR fails.
      */
     operator fun invoke(
         imageUri: Uri,
@@ -79,7 +87,13 @@ class ProcessImageUseCase @Inject constructor(
     }
 
     /**
-     * Process an image from URI synchronously
+     * Processes an image at the given URI and performs OCR on it.
+     *
+     * Loads a bitmap from the provided URI (resized to config.maxImageDimension), runs text recognition, and recycles the bitmap before returning.
+     *
+     * @param imageUri The URI of the image to process.
+     * @param config OCR configuration options; defaults to a new OCRConfig.
+     * @return A Result containing an OCRResult on success, or a failure Result with an exception if bitmap loading or recognition fails.
      */
     suspend fun execute(
         imageUri: Uri,

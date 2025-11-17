@@ -126,7 +126,10 @@ data class Language(
         )
 
         /**
-         * Get display name for a language code
+         * Get the human-readable display name for a language code.
+         *
+         * @param code The language code (e.g., "eng", "fra").
+         * @return The mapped display name if present, otherwise the code converted to uppercase.
          */
         fun getDisplayName(code: String): String {
             return LANGUAGE_NAMES[code] ?: code.uppercase()

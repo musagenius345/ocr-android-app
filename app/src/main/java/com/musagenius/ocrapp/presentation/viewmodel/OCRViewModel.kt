@@ -66,7 +66,14 @@ class OCRViewModel @Inject constructor(
     }
 
     /**
-     * Process image with OCR
+     * Starts OCR processing for the given image and updates the ViewModel UI state with progress and results.
+     *
+     * Cancels any currently running OCR job, stops the OCR service before starting, and launches a coroutine to perform OCR.
+     * On success the UI state is updated with extracted text, confidence, and processing time; on failure the UI state is updated with an error.
+     * Cancellation is handled to stop the OCR service and clear processing state without surfacing an error to the user.
+     *
+     * @param imageUri The Uri of the image to process.
+     * @param language The OCR language code to use (e.g., "eng").
      */
     private fun processImage(imageUri: Uri, language: String) {
         // Cancel any ongoing OCR job to prevent concurrent processing
@@ -258,14 +265,19 @@ class OCRViewModel @Inject constructor(
     }
 
     /**
-     * Set image URI (called from navigation)
+     * Trigger OCR processing for the provided image URI.
+     *
+     * @param uri The image Uri to process.
+     * @param language The OCR language code to use; defaults to "eng".
      */
     fun setImageUri(uri: Uri, language: String = "eng") {
         processImage(uri, language)
     }
 
     /**
-     * Cancel current OCR processing
+     * Cancels any ongoing OCR work, stops the OCR service, and updates the UI to reflect cancellation.
+     *
+     * After invocation the ViewModel stops the OCR engine (if running) and updates UI state setting `isProcessing` to `false` and `error` to `"Processing cancelled"`. Safe to call when no processing is active.
      */
     fun cancelProcessing() {
         Log.d(TAG, "Cancelling OCR processing")
@@ -292,7 +304,10 @@ class OCRViewModel @Inject constructor(
     }
 
     /**
-     * Clean up resources when ViewModel is destroyed
+     * Perform final cleanup when the ViewModel is destroyed.
+     *
+     * Cancels any ongoing OCR processing job and requests the OCR service to stop; failures while
+     * stopping the OCR service are caught and logged.
      */
     override fun onCleared() {
         super.onCleared()

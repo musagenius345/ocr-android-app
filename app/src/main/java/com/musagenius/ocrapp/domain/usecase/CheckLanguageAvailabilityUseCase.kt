@@ -11,9 +11,10 @@ class CheckLanguageAvailabilityUseCase @Inject constructor(
     private val ocrService: OCRService
 ) {
     /**
-     * Check if a language is available
-     * @param languageCode The language code to check (e.g., "eng", "fra")
-     * @return Result containing true if language is available, false otherwise
+     * Determines whether the specified OCR language is available.
+     *
+     * @param languageCode The language code to check (e.g., "eng", "fra").
+     * @return `true` if the language is available, `false` otherwise.
      */
     operator fun invoke(languageCode: String): Result<Boolean> {
         return try {
@@ -25,9 +26,10 @@ class CheckLanguageAvailabilityUseCase @Inject constructor(
     }
 
     /**
-     * Check if multiple languages are available
-     * @param languageCodes List of language codes to check
-     * @return Result containing map of language codes to availability status
+     * Determine availability for each provided language code.
+     *
+     * @param languageCodes List of language codes to check.
+     * @return A map from each language code to `true` if that language is available, `false` otherwise.
      */
     fun checkMultiple(languageCodes: List<String>): Result<Map<String, Boolean>> {
         return try {
@@ -41,9 +43,10 @@ class CheckLanguageAvailabilityUseCase @Inject constructor(
     }
 
     /**
-     * Check if all specified languages are available
-     * @param languageCodes List of language codes to check
-     * @return Result containing true only if ALL languages are available
+     * Determines whether all specified languages are available.
+     *
+     * @param languageCodes List of language codes to check.
+     * @return `true` if all specified languages are available, `false` otherwise.
      */
     fun areAllAvailable(languageCodes: List<String>): Result<Boolean> {
         return try {
@@ -57,9 +60,10 @@ class CheckLanguageAvailabilityUseCase @Inject constructor(
     }
 
     /**
-     * Check if at least one of the specified languages is available
-     * @param languageCodes List of language codes to check
-     * @return Result containing true if at least one language is available
+     * Determine whether any of the specified language codes is available.
+     *
+     * @param languageCodes The language codes to check.
+     * @return `true` if at least one of the specified languages is available, `false` otherwise.
      */
     fun isAnyAvailable(languageCodes: List<String>): Result<Boolean> {
         return try {

@@ -28,11 +28,12 @@ class ImageCompressor @Inject constructor(
     }
 
     /**
-     * Compress image from URI
-     * @param sourceUri Source image URI
-     * @param quality JPEG quality (0-100), default 85
-     * @param maxSize Maximum dimension, default 2048
-     * @return URI of compressed image
+     * Creates a compressed JPEG copy of the image at the given URI.
+     *
+     * @param sourceUri URI of the source image to compress.
+     * @param quality JPEG quality between 0 and 100; higher means better quality and larger file size.
+     * @param maxSize Maximum width or height in pixels for the sampled bitmap; larger images are downscaled to fit.
+     * @return A Result containing the URI of the compressed JPEG file on success, or a failure with the encountered exception.
      */
     suspend fun compressImage(
         sourceUri: Uri,
@@ -69,10 +70,11 @@ class ImageCompressor @Inject constructor(
     }
 
     /**
-     * Load bitmap from Uri with efficient sampling
-     * @param uri Source image URI
-     * @param maxSize Maximum dimension, default 2048
-     * @return Bitmap or null if loading fails
+     * Load a bitmap from a URI scaled to fit within the given maximum dimension and corrected for EXIF orientation.
+     *
+     * @param uri The source image Uri to load from.
+     * @param maxSize Maximum width or height in pixels; the decoded bitmap's largest dimension will not exceed this value.
+     * @return The decoded Bitmap corrected for EXIF orientation, or `null` if the image could not be loaded.
      */
     suspend fun loadBitmapFromUri(
         uri: Uri,
@@ -85,7 +87,11 @@ class ImageCompressor @Inject constructor(
     }
 
     /**
-     * Load bitmap with efficient sampling (internal use)
+     * Decodes a bitmap from the provided Uri while downsampling to keep its largest dimension at or below [maxSize].
+     *
+     * @param uri The content Uri of the image to decode.
+     * @param maxSize Maximum allowed width or height in pixels for the decoded bitmap.
+     * @return A downsampled Bitmap if decoding succeeds, or `null` on failure.
      */
     private fun loadSampledBitmap(uri: Uri, maxSize: Int): Bitmap? {
         return try {

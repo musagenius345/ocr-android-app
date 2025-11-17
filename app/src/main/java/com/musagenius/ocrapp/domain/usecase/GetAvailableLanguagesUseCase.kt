@@ -18,8 +18,17 @@ class GetAvailableLanguagesUseCase @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     /**
-     * Get list of all available languages with details
-     * @return Result containing list of Language objects
+     * Retrieve available OCR languages enriched with installation and file-size metadata.
+     *
+     * Obtains language codes from the OCR service, locates the app's tessdata directory under
+     * external files, and maps each code to a Language object containing:
+     * - `code`: the language code,
+     * - `displayName`: derived from `Language.getDisplayName(code)`,
+     * - `isInstalled`: `true` if a corresponding `<code>.traineddata` file exists in tessdata,
+     * - `fileSize`: size of the traineddata file in bytes or `0` if not present.
+     * The resulting list is sorted by `displayName`.
+     *
+     * @return A Result containing the list of Language objects ordered by displayName; on failure, a failure Result with the thrown exception.
      */
     suspend operator fun invoke(): Result<List<Language>> = withContext(Dispatchers.IO) {
         try {
@@ -47,7 +56,9 @@ class GetAvailableLanguagesUseCase @Inject constructor(
     }
 
     /**
-     * Get only installed languages
+     * Retrieve the list of OCR languages that are currently installed.
+     *
+     * @return A `Result` containing the list of installed `Language` objects on success; a failed `Result` with the encountered exception on error.
      */
     suspend fun getInstalled(): Result<List<Language>> = withContext(Dispatchers.IO) {
         try {
