@@ -7,17 +7,17 @@ This directory should contain Tesseract trained data files (`.traineddata`) for 
 Trained data files can be downloaded from the official Tesseract repository:
 
 **Best (Recommended):**
-- URL: https://github.com/tesseract-ocr/tessdata_best
+- URL: <https://github.com/tesseract-ocr/tessdata_best>
 - High accuracy, larger file sizes (~10-50 MB per language)
 - Best for production use
 
 **Fast:**
-- URL: https://github.com/tesseract-ocr/tessdata_fast
+- URL: <https://github.com/tesseract-ocr/tessdata_fast>
 - Faster processing, smaller file sizes (~1-5 MB per language)
 - Good for quick prototyping
 
 **Standard:**
-- URL: https://github.com/tesseract-ocr/tessdata
+- URL: <https://github.com/tesseract-ocr/tessdata>
 - Balanced accuracy and speed
 
 ## How to Add Languages
@@ -49,7 +49,7 @@ wget https://github.com/tesseract-ocr/tessdata_best/raw/main/eng.traineddata
 - `kor.traineddata` - Korean
 - `hin.traineddata` - Hindi
 
-See full list: https://tesseract-ocr.github.io/tessdoc/Data-Files-in-different-versions.html
+See full list: <https://tesseract-ocr.github.io/tessdoc/Data-Files-in-different-versions.html>
 
 ## File Size Considerations
 
