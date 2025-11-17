@@ -34,6 +34,6 @@
     volatile <fields>;
 }
 
-# CameraX
--keep class androidx.camera.** { *; }
+# CameraX - rely on consumer proguard rules
+# Only keep essential classes if needed
 -dontwarn androidx.camera.**
