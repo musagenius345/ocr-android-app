@@ -423,6 +423,202 @@ This document tracks all development tasks for the Material Design 3 OCR applica
 
 ---
 
+## Security & Privacy (Code Review Recommendations)
+
+### 🔴 Critical Security Items (Before Production)
+
+- [ ] Implement database encryption
+  - [ ] Add SQLCipher dependency
+  - [ ] Encrypt Room database with passphrase
+  - [ ] Secure key storage using Android Keystore
+  - [ ] Test encrypted database operations
+  - [ ] Document encryption approach
+- [ ] Resolve DatabaseModule.kt:32 TODO
+  - [ ] Address production readiness checklist
+  - [ ] Implement fallback to destructive migration strategy
+  - [ ] Add database versioning documentation
+- [ ] Add crash reporting
+  - [ ] Integrate Firebase Crashlytics
+  - [ ] Configure ProGuard mapping upload
+  - [ ] Set up crash alert notifications
+- [ ] File URI security improvements
+  - [ ] Validate URIs before storage/access
+  - [ ] Implement path traversal prevention
+  - [ ] Add URI sanitization helper
+
+### 🟡 Security Enhancements
+
+- [ ] Strengthen ProGuard rules
+  - [ ] Add obfuscation for sensitive data classes
+  - [ ] Keep rules for domain models with sensitive data
+  - [ ] Test release builds thoroughly
+- [ ] Implement secure logging
+  - [ ] Add Timber library for log management
+  - [ ] Remove all logs in release builds
+  - [ ] Never log user content or URIs
+- [ ] Data sanitization
+  - [ ] Sanitize extracted text before saving
+  - [ ] Validate image URIs before processing
+  - [ ] Add input validation for all user data
+- [ ] Secure deletion
+  - [ ] Implement secure file deletion (overwrite before delete)
+  - [ ] Add confirmation dialogs for delete operations
+  - [ ] Clear sensitive data from memory after use
+
+### 🟢 Privacy Features
+
+- [ ] Add app lock option (PIN/biometric)
+- [ ] Privacy policy document
+- [ ] Data export/deletion for GDPR compliance
+- [ ] Audit logging for sensitive operations
+
+---
+
+## Testing Improvements (Code Review Recommendations)
+
+### 🔴 Critical Testing Gaps
+
+- [ ] Add ViewModel tests
+  - [ ] OCRViewModel tests with fake dependencies
+  - [ ] CameraViewModel tests
+  - [ ] Test state management and edge cases
+  - [ ] Test error handling scenarios
+  - [ ] Target 80%+ coverage for ViewModels
+- [ ] Add Use Case tests
+  - [ ] ProcessImageUseCase with mock OCR service
+  - [ ] ValidateImageQualityUseCase tests
+  - [ ] InitializeOCRUseCase tests
+  - [ ] Test all use cases in domain layer
+- [ ] Add Compose UI tests
+  - [ ] CameraScreen interaction tests
+  - [ ] OCRResultScreen tests
+  - [ ] Navigation flow tests
+  - [ ] Accessibility tests with semantics
+- [ ] Add integration tests
+  - [ ] End-to-end OCR flow test
+  - [ ] Camera → OCR → Save flow
+  - [ ] Database migration tests
+
+### 🟡 Testing Infrastructure
+
+- [ ] Set up test coverage reporting
+  - [ ] Add JaCoCo plugin
+  - [ ] Configure coverage thresholds (80% target)
+  - [ ] Generate coverage reports in CI
+- [ ] Add UI testing framework
+  - [ ] Set up Compose testing dependencies
+  - [ ] Create test robots for common flows
+  - [ ] Add screenshot testing (optional)
+- [ ] Add OCRService tests
+  - [ ] Mock Tesseract native calls (challenging)
+  - [ ] Test error handling without native library
+  - [ ] Integration tests with real Tesseract
+
+### 🟢 Test Quality
+
+- [ ] Add edge case tests
+  - [ ] Empty text extraction
+  - [ ] Very large images
+  - [ ] Corrupted images
+  - [ ] Low confidence OCR results
+- [ ] Performance tests
+  - [ ] OCR processing time benchmarks
+  - [ ] Database query performance tests
+  - [ ] UI rendering performance tests
+
+---
+
+## Code Quality Improvements (Code Review Recommendations)
+
+### 🟡 Refactoring & Best Practices
+
+- [ ] Extract magic numbers to constants
+  - [ ] Create OCRDefaults object for configuration
+  - [ ] MAX_IMAGE_DIMENSION = 2048
+  - [ ] JPEG_QUALITY = 85
+  - [ ] MIN_STORAGE_BYTES constant
+  - [ ] OCR timeout values
+- [ ] Improve logging strategy
+  - [ ] Add Timber for structured logging
+  - [ ] Use different log levels appropriately
+  - [ ] Remove logs in release builds
+  - [ ] Add log tags consistently
+- [ ] Add configuration management
+  - [ ] Extract hardcoded values to config file
+  - [ ] Create BuildConfig fields for settings
+  - [ ] Document all configuration options
+
+### 🟢 Documentation Improvements
+
+- [ ] Create architecture diagram
+  - [ ] Visual representation of layers
+  - [ ] Data flow diagrams
+  - [ ] Component interaction diagrams
+- [ ] Add API documentation
+  - [ ] Document all use cases
+  - [ ] Add examples to KDoc
+  - [ ] Document error handling strategies
+- [ ] Create testing strategy document
+  - [ ] Unit test guidelines
+  - [ ] Integration test patterns
+  - [ ] UI test best practices
+- [ ] Add contribution guidelines
+  - [ ] Code style guide
+  - [ ] PR template
+  - [ ] Review checklist
+- [ ] Create changelog/release notes
+  - [ ] Document version history
+  - [ ] Track breaking changes
+  - [ ] List new features per release
+
+---
+
+## Performance Optimization (Code Review Recommendations)
+
+### 🟡 Image Processing Optimizations
+
+- [ ] Implement image tiling for very large images
+  - [ ] Process images in chunks if > 4096px
+  - [ ] Reduce memory footprint for large images
+  - [ ] Add progress reporting for tiled processing
+- [ ] Improve bitmap memory management
+  - [ ] Implement bitmap pooling
+  - [ ] Aggressive recycling of temporary bitmaps
+  - [ ] Use inBitmap for efficient reuse
+- [ ] OCR initialization optimization
+  - [ ] Pre-load Tesseract during splash screen
+  - [ ] Cache initialized TessBaseAPI instances
+  - [ ] Warm-up OCR engine on app start
+
+### 🟡 Database Performance
+
+- [ ] Implement Paging 3 for large datasets
+  - [ ] Replace getAllScans with paging
+  - [ ] Add RemoteMediator if cloud sync added
+  - [ ] Test with 1000+ scans
+- [ ] Query optimization
+  - [ ] Review and optimize slow queries
+  - [ ] Add indexes for common filters
+  - [ ] Use EXPLAIN QUERY PLAN
+- [ ] Consider Full-Text Search (FTS)
+  - [ ] Implement FTS4/FTS5 for text search
+  - [ ] Faster search performance
+  - [ ] Highlight search matches
+
+### 🟢 General Performance
+
+- [ ] Profile with Android Studio Profiler
+  - [ ] CPU profiling for hot paths
+  - [ ] Memory leak detection
+  - [ ] Network profiling (if cloud features added)
+- [ ] Reduce APK size
+  - [ ] Remove unused resources
+  - [ ] Optimize image assets
+  - [ ] Use vector drawables
+  - [ ] Enable APK splits for ABIs
+
+---
+
 ## Nice-to-Have Features (Future)
 
 ### 🟢 Advanced Features

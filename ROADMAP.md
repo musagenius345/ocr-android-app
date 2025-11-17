@@ -532,7 +532,238 @@ Provide user customization and language management.
 
 ---
 
-### Phase 6: Polish & Optimization ✨
+### Phase 6: Security & Hardening 🔒
+
+**Duration:** 1 week
+**Status:** 🔜 Planned
+**Priority:** Critical (Before Production)
+
+#### Goals
+Implement security best practices and harden the app against vulnerabilities before production release.
+
+**Note:** This phase was added based on code review recommendations. Security is critical for an app that handles user documents and sensitive text data.
+
+#### Milestones
+
+##### Milestone 6.1: Database Encryption (Week 13)
+**Objective:** Protect user data at rest
+
+- [ ] Implement SQLCipher for Room database
+  - [ ] Add SQLCipher dependencies
+  - [ ] Integrate with Room database
+  - [ ] Generate and store encryption key securely
+  - [ ] Use Android Keystore for key management
+- [ ] Test encrypted database
+  - [ ] Verify all operations work with encryption
+  - [ ] Test migration from unencrypted to encrypted
+  - [ ] Performance testing with encryption
+- [ ] Handle key management
+  - [ ] Key generation on first launch
+  - [ ] Key rotation strategy (future)
+  - [ ] Backup and recovery considerations
+- [ ] **Resolve DatabaseModule.kt:32 TODO**
+  - [ ] Production migration strategy
+  - [ ] Database versioning documentation
+
+**Success Criteria:**
+- All user data encrypted at rest
+- No performance degradation (< 5% overhead)
+- Successful migration from unencrypted database
+- Keys securely stored in Android Keystore
+
+##### Milestone 6.2: Security Hardening (Week 13-14)
+**Objective:** Fix security vulnerabilities and implement best practices
+
+- [ ] File URI security
+  - [ ] Validate all URIs before storage/access
+  - [ ] Implement path traversal prevention
+  - [ ] Add URI sanitization helper methods
+  - [ ] Test with malicious URI patterns
+- [ ] Strengthen ProGuard rules
+  - [ ] Obfuscate sensitive data classes
+  - [ ] Add keep rules for critical components
+  - [ ] Test release builds thoroughly
+  - [ ] Verify no runtime crashes from obfuscation
+- [ ] Secure logging
+  - [ ] Add Timber library
+  - [ ] Remove all logs in release builds
+  - [ ] Never log user content or file paths
+  - [ ] Configure log levels per build type
+- [ ] Data sanitization
+  - [ ] Sanitize extracted text before storage
+  - [ ] Validate all user inputs
+  - [ ] Add XSS prevention for future web features
+- [ ] Secure deletion
+  - [ ] Implement secure file deletion (overwrite)
+  - [ ] Add confirmation dialogs for destructive actions
+  - [ ] Clear sensitive data from memory
+
+**Success Criteria:**
+- No security vulnerabilities found in audit
+- ProGuard rules tested and working
+- Logging policy documented and enforced
+- Secure deletion verified
+
+##### Milestone 6.3: Crash Reporting & Monitoring (Week 14)
+**Objective:** Set up production monitoring
+
+- [ ] Integrate Firebase Crashlytics
+  - [ ] Add Firebase SDK
+  - [ ] Configure crash reporting
+  - [ ] Test crash reporting in debug/release
+  - [ ] Set up alert notifications
+- [ ] Configure ProGuard mapping upload
+  - [ ] Auto-upload mapping files
+  - [ ] Verify symbolicated crash reports
+- [ ] Add custom crash reporting
+  - [ ] Track critical app states
+  - [ ] Add custom keys for debugging
+  - [ ] Log user actions before crash (non-PII)
+- [ ] Set up monitoring dashboard
+  - [ ] Configure alert thresholds
+  - [ ] Set up on-call rotation (if team)
+
+**Success Criteria:**
+- Crashlytics integrated and tested
+- Symbolicated crash reports working
+- Alert system configured
+- Monitoring dashboard set up
+
+---
+
+### Phase 7: Testing & Quality Assurance 🧪 (Enhanced)
+
+**Duration:** 2 weeks
+**Status:** 🔜 Planned
+**Priority:** Critical
+
+#### Goals
+Comprehensive testing to ensure app stability, quality, and security.
+
+**Enhancement Note:** This phase has been expanded based on code review findings to include critical missing tests.
+
+#### Milestones
+
+##### Milestone 7.1: Unit Testing (Week 14-15)
+**Objective:** Test business logic with 80%+ coverage
+
+- [ ] **Critical: Add ViewModel tests (Missing)**
+  - [ ] OCRViewModel tests with fake repositories
+  - [ ] CameraViewModel tests
+  - [ ] Test all state transitions
+  - [ ] Test error handling scenarios
+  - [ ] Test concurrent operation handling
+  - [ ] Target 85%+ coverage for ViewModels
+- [ ] **Critical: Add Use Case tests (Missing)**
+  - [ ] ProcessImageUseCase with mock OCR service
+  - [ ] ValidateImageQualityUseCase tests
+  - [ ] InitializeOCRUseCase tests
+  - [ ] Test all domain use cases
+  - [ ] Test error propagation
+  - [ ] Target 90%+ coverage for use cases
+- [ ] Test repositories (existing, expand)
+  - [ ] Mock DAOs (already done)
+  - [ ] Test error handling (already done)
+  - [ ] Add edge case tests
+  - [ ] Test Flow-based queries
+- [ ] Test utilities and helpers
+  - [ ] ImagePreprocessor tests
+  - [ ] ImageCompressor tests
+  - [ ] Mapper tests (expand existing)
+- [ ] Set up test coverage reporting
+  - [ ] Add JaCoCo plugin to Gradle
+  - [ ] Generate HTML coverage reports
+  - [ ] Enforce 80% minimum threshold
+  - [ ] Integrate with CI/CD
+
+**Success Criteria:**
+- **80%+ code coverage for domain/data layers**
+- **85%+ coverage for ViewModels** (critical gap)
+- **90%+ coverage for use cases** (critical gap)
+- All critical paths tested
+- Tests are maintainable and fast
+- Coverage reports generated automatically
+
+##### Milestone 7.2: Integration Testing (Week 15)
+**Objective:** Test component interactions
+
+- [ ] **Critical: Add end-to-end flow tests**
+  - [ ] Camera → Capture → OCR → Save flow
+  - [ ] Gallery → Pick → OCR → Save flow
+  - [ ] History → Search → Delete flow
+  - [ ] Test with real Room database (in-memory)
+  - [ ] Test navigation flows
+- [ ] Test database operations
+  - [ ] CRUD operations (existing)
+  - [ ] **Add migration tests** (critical)
+  - [ ] Complex queries with real data
+  - [ ] Test database encryption (Phase 6)
+- [ ] Test OCR pipeline
+  - [ ] Use known test images with expected text
+  - [ ] Validate accuracy thresholds
+  - [ ] Test error scenarios (corrupted images)
+  - [ ] Test preprocessing pipeline
+- [ ] Test dependency injection
+  - [ ] Verify all modules wire correctly
+  - [ ] Test scoping (Singleton, ViewModel scoped)
+  - [ ] Test with Hilt testing framework
+
+**Success Criteria:**
+- All integration tests pass
+- End-to-end flows tested and working
+- Database migrations tested thoroughly
+- Edge cases handled gracefully
+
+##### Milestone 7.3: UI Testing (Week 15-16)
+**Objective:** Test user-facing functionality
+
+- [ ] **Critical: Add Compose UI tests (Missing)**
+  - [ ] CameraScreen interaction tests
+  - [ ] OCRResultScreen tests
+  - [ ] Navigation tests between screens
+  - [ ] Test with semantics for accessibility
+  - [ ] Test state hoisting patterns
+- [ ] Write UI tests for critical flows
+  - [ ] Camera capture flow with mocked camera
+  - [ ] OCR processing flow with fake data
+  - [ ] History list operations (scroll, search, delete)
+  - [ ] Settings changes and persistence
+- [ ] Accessibility testing
+  - [ ] Run automated accessibility scanner
+  - [ ] Test with TalkBack enabled
+  - [ ] Test with large text (200% scale)
+  - [ ] Verify content descriptions
+  - [ ] Test keyboard navigation
+- [ ] Manual testing on various devices
+  - [ ] Different screen sizes (phone, tablet)
+  - [ ] Different Android versions (API 24-35)
+  - [ ] Different camera configurations
+  - [ ] Different manufacturers (Samsung, Pixel, etc.)
+- [ ] Test edge cases
+  - [ ] Low storage scenarios
+  - [ ] No camera available (use gallery only)
+  - [ ] Airplane mode / offline mode
+  - [ ] Corrupted images
+  - [ ] Very large images (> 4096px)
+  - [ ] Empty or blank images
+- [ ] Performance testing
+  - [ ] Large history (1000+ scans)
+  - [ ] Large images (10+ MB)
+  - [ ] Long processing times
+  - [ ] Memory profiling during OCR
+  - [ ] UI jank detection
+
+**Success Criteria:**
+- **All UI tests pass** (new requirement)
+- **Compose UI tests for all screens** (critical gap)
+- Works smoothly on various devices
+- No critical bugs found
+- **80%+ accessibility score** (automated scanner)
+- Performance meets targets (60fps UI)
+
+---
+
+### Phase 8: Polish & Optimization ✨ (Enhanced)
 
 **Duration:** 2 weeks
 **Status:** 🔜 Planned
@@ -540,6 +771,8 @@ Provide user customization and language management.
 
 #### Goals
 Refine the app to production quality with optimizations and polish.
+
+**Enhancement Note:** Additional optimization tasks added based on code review recommendations.
 
 #### Milestones
 
@@ -569,7 +802,7 @@ Refine the app to production quality with optimizations and polish.
 - Smooth 60fps UI
 - Fast database queries (<50ms)
 
-##### Milestone 6.2: UX Refinements (Week 14)
+##### Milestone 8.2: UX Refinements (Week 17)
 **Objective:** Perfect the user experience
 
 - [ ] Add animations
@@ -595,7 +828,7 @@ Refine the app to production quality with optimizations and polish.
 - Clear feedback for all actions
 - Professional feel
 
-##### Milestone 6.3: Final Accessibility Audit (Week 14-15)
+##### Milestone 8.3: Final Accessibility Audit (Week 17-18)
 **Objective:** Comprehensive accessibility audit and final fixes
 
 **Note:** Basic accessibility is built into Phases 2-4. This milestone focuses on:
@@ -624,86 +857,7 @@ Refine the app to production quality with optimizations and polish.
 
 ---
 
-### Phase 7: Testing & Quality Assurance 🧪
-
-**Duration:** 2 weeks
-**Status:** 🔜 Planned
-**Priority:** Critical
-
-#### Goals
-Ensure app stability and quality through comprehensive testing.
-
-#### Milestones
-
-##### Milestone 7.1: Unit Testing (Week 15)
-**Objective:** Test business logic
-
-- [ ] Write unit tests for use cases
-  - ProcessImageUseCase
-  - SearchScansUseCase
-  - All other use cases
-- [ ] Test repositories
-  - Mock DAOs
-  - Test error handling
-- [ ] Test ViewModels
-  - State management
-  - User interactions
-- [ ] Test utilities and helpers
-- [ ] Target 80%+ code coverage for domain/data layers
-
-**Success Criteria:**
-- 80%+ test coverage
-- All critical paths tested
-- Tests are maintainable
-
-##### Milestone 7.2: Integration Testing (Week 15-16)
-**Objective:** Test component interactions
-
-- [ ] Test database operations
-  - CRUD operations
-  - Migrations
-  - Complex queries
-- [ ] Test OCR pipeline end-to-end
-  - Use known test images
-  - Validate accuracy
-  - Test error scenarios
-- [ ] Test navigation flows
-- [ ] Test dependency injection
-
-**Success Criteria:**
-- All integration tests pass
-- Edge cases handled
-- No integration issues
-
-##### Milestone 7.3: UI & Manual Testing (Week 16)
-**Objective:** Test user-facing functionality
-
-- [ ] Write UI tests for critical flows
-  - Camera capture flow
-  - OCR processing flow
-  - History operations
-- [ ] Manual testing on various devices
-  - Different screen sizes
-  - Different Android versions
-  - Different camera configurations
-- [ ] Test edge cases
-  - Low storage
-  - No camera
-  - Airplane mode
-  - Corrupted images
-- [ ] Performance testing
-  - Large history (1000+ scans)
-  - Large images
-  - Long processing times
-
-**Success Criteria:**
-- All UI tests pass
-- Works on various devices
-- No critical bugs
-
----
-
-### Phase 8: Release Preparation 🚀
+### Phase 9: Release Preparation 🚀
 
 **Duration:** 1-2 weeks
 **Status:** 🔜 Planned
@@ -714,20 +868,20 @@ Prepare the app for production release on Google Play Store.
 
 #### Milestones
 
-##### Milestone 8.1: Build Configuration (Week 16-17)
+##### Milestone 9.1: Build Configuration (Week 18-19)
 **Objective:** Set up release builds
 
 - [ ] Configure release signing
-  - Generate keystore
-  - Set up signing config
-  - Document keystore management
+  - [ ] Generate keystore
+  - [ ] Set up signing config
+  - [ ] Document keystore management
 - [ ] Optimize ProGuard/R8 rules
-  - Test shrinking
-  - Ensure no runtime issues
-  - Optimize size
+  - [ ] Test shrinking
+  - [ ] Ensure no runtime issues
+  - [ ] Optimize size
 - [ ] Set up version numbering
-  - versionCode strategy
-  - versionName strategy
+  - [ ] versionCode strategy
+  - [ ] versionName strategy
 - [ ] Create release build variants
 - [ ] Test release builds thoroughly
 
@@ -736,34 +890,41 @@ Prepare the app for production release on Google Play Store.
 - Optimized app size
 - No ProGuard issues
 
-##### Milestone 8.2: Documentation (Week 17)
+##### Milestone 9.2: Documentation (Week 19)
 **Objective:** Document the project
 
 - [ ] Update README.md
-  - Project description
-  - Features list
-  - Screenshots
-  - Installation instructions
-  - Build instructions
+  - [ ] Project description
+  - [ ] Features list
+  - [ ] Screenshots
+  - [ ] Installation instructions
+  - [ ] Build instructions
 - [ ] Write technical documentation
-  - Architecture overview
-  - API documentation
-  - Database schema
-  - Contributing guidelines
+  - [ ] Architecture overview
+  - [ ] Architecture diagram (new - from code review)
+  - [ ] API documentation
+  - [ ] Database schema
+  - [ ] Contributing guidelines (new - from code review)
 - [ ] Create user guide
-  - How to use the app
-  - Tips and tricks
-  - Troubleshooting
+  - [ ] How to use the app
+  - [ ] Tips and tricks
+  - [ ] Troubleshooting
 - [ ] Add inline code documentation
-  - KDoc comments
-  - Complex logic explanations
+  - [ ] KDoc comments
+  - [ ] Complex logic explanations
+- [ ] **Create changelog/release notes** (new - from code review)
+  - [ ] Document version history
+  - [ ] Track breaking changes
+  - [ ] List new features per release
 
 **Success Criteria:**
 - Comprehensive documentation
 - Easy for new developers
 - Clear user instructions
+- **Architecture diagram created**
+- **Contribution guidelines documented**
 
-##### Milestone 8.3: Store Listing (Week 17-18)
+##### Milestone 9.3: Store Listing (Week 19-20)
 **Objective:** Prepare Play Store presence
 
 - [ ] Create app screenshots
@@ -790,7 +951,7 @@ Prepare the app for production release on Google Play Store.
 - All assets ready
 - Compelling description
 
-##### Milestone 8.4: Beta Testing (Week 18)
+##### Milestone 9.4: Beta Testing (Week 20)
 **Objective:** Test with real users
 
 - [ ] Set up internal testing track
@@ -810,9 +971,9 @@ Prepare the app for production release on Google Play Store.
 
 ---
 
-## Post-Launch (Phase 9+)
+## Post-Launch (Phase 10+)
 
-### Immediate Post-Launch (Weeks 19-20)
+### Immediate Post-Launch (Weeks 21-22)
 
 - [ ] Monitor crash reports (Firebase Crashlytics)
 - [ ] Respond to user reviews
@@ -975,7 +1136,9 @@ Prepare the app for production release on Google Play Store.
 - Phase 2: Camera capture
 - Phase 3: OCR results screen
 - Phase 4: Basic history list
-- Phase 8: Release preparation
+- **Phase 6: Security & Hardening** (new - critical)
+- **Phase 7: Testing** (enhanced - critical)
+- Phase 9: Release preparation
 
 **Priority 2 (Nice to Have, can defer to v1.1):**
 - Advanced image preprocessing
@@ -1041,11 +1204,23 @@ Prepare the app for production release on Google Play Store.
 
 This roadmap provides a structured approach to building a production-quality OCR application. The phased approach ensures we build a solid foundation before adding advanced features. Regular testing and user feedback will guide iterations.
 
-**Estimated Timeline:**
-- **Solo Developer:** 18-20 weeks to v1.0 launch (20-30h/week commitment)
-- **Small Team (2 devs):** 12-16 weeks to v1.0 launch
+**Estimated Timeline (Updated with Security & Testing Enhancements):**
+- **Solo Developer:** 20-22 weeks to v1.0 launch (20-30h/week commitment)
+  - Includes new Phase 6 (Security) and enhanced Phase 7 (Testing)
+  - +2 weeks from original estimate due to code review recommendations
+- **Small Team (2 devs):** 14-18 weeks to v1.0 launch
+  - Parallel work on security and testing
+  - +2 weeks from original estimate
 - **MVP (Phases 1-3 only):** 10-12 weeks (for aggressive launch)
+  - **NOT RECOMMENDED** - skips critical security and testing
+  - Use only for proof-of-concept, not production
 - **Buffer:** Include 20% contingency (2-4 weeks) for unexpected blockers
+
+**Why the timeline increased:**
+- Added Phase 6 (Security & Hardening) - 1 week
+- Enhanced Phase 7 (Testing) with missing critical tests - 1 week
+- These are **non-negotiable** for production release
+- Code review found security gaps that must be addressed
 
 **Post-Launch:** Continuous improvement based on user feedback
 
