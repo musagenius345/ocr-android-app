@@ -23,6 +23,8 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import com.musagenius.ocrapp.presentation.ui.components.ShutterAnimation
+import com.musagenius.ocrapp.presentation.ui.components.rememberHapticFeedback
 import com.musagenius.ocrapp.presentation.viewmodel.CameraViewModel
 
 /**
@@ -39,6 +41,10 @@ fun CameraScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val uiState by viewModel.uiState.collectAsState()
+    val haptic = rememberHapticFeedback()
+
+    // Shutter animation trigger
+    var showShutterAnimation by remember { mutableStateOf(false) }
 
     // Camera permission state
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
@@ -158,14 +164,27 @@ fun CameraScreen(
                         onPreviewViewCreated = { previewView = it }
                     )
 
+                    // Shutter animation overlay
+                    ShutterAnimation(
+                        trigger = showShutterAnimation,
+                        onAnimationComplete = { showShutterAnimation = false }
+                    )
+
                     // Camera controls overlay
                     CameraControls(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .padding(bottom = 32.dp),
                         isProcessing = uiState.isProcessing,
-                        onCaptureClick = { viewModel.onEvent(CameraEvent.CaptureImage) },
-                        onGalleryClick = { galleryLauncher.launch("image/*") }
+                        onCaptureClick = {
+                            haptic.performCaptureFeedback()
+                            showShutterAnimation = true
+                            viewModel.onEvent(CameraEvent.CaptureImage)
+                        },
+                        onGalleryClick = {
+                            haptic.performLightTap()
+                            galleryLauncher.launch("image/*")
+                        }
                     )
                 }
             }
@@ -195,11 +214,16 @@ fun CameraTopBar(
     flashMode: FlashMode,
     onToggleFlash: () -> Unit
 ) {
+    val haptic = rememberHapticFeedback()
+
     TopAppBar(
         title = { Text("Scan Document") },
         navigationIcon = {
             IconButton(
-                onClick = onNavigateBack,
+                onClick = {
+                    haptic.performLightTap()
+                    onNavigateBack()
+                },
                 modifier = Modifier.semantics {
                     contentDescription = "Navigate back"
                 }
@@ -212,7 +236,10 @@ fun CameraTopBar(
         },
         actions = {
             IconButton(
-                onClick = onToggleFlash,
+                onClick = {
+                    haptic.performLightTap()
+                    onToggleFlash()
+                },
                 modifier = Modifier
                     .size(48.dp) // Minimum touch target
                     .semantics {

@@ -7,6 +7,8 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.musagenius.ocrapp.data.camera.CameraManager
+import com.musagenius.ocrapp.data.utils.ImageCompressor
+import com.musagenius.ocrapp.data.utils.StorageManager
 import com.musagenius.ocrapp.presentation.ui.camera.CameraEvent
 import com.musagenius.ocrapp.presentation.ui.camera.CameraUiState
 import com.musagenius.ocrapp.presentation.ui.camera.FlashMode
@@ -23,7 +25,9 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class CameraViewModel @Inject constructor(
-    private val cameraManager: CameraManager
+    private val cameraManager: CameraManager,
+    private val imageCompressor: ImageCompressor,
+    private val storageManager: StorageManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CameraUiState())
@@ -86,16 +90,53 @@ class CameraViewModel @Inject constructor(
             try {
                 _uiState.update { it.copy(isProcessing = true, error = null) }
 
-                val imageUri = cameraManager.captureImage()
-
-                _uiState.update {
-                    it.copy(
-                        isProcessing = false,
-                        capturedImageUri = imageUri
-                    )
+                // Check storage availability before capture
+                if (!storageManager.hasAvailableStorage(requiredMB = 50L)) {
+                    _uiState.update {
+                        it.copy(
+                            isProcessing = false,
+                            error = "Insufficient storage space. Please free up space and try again."
+                        )
+                    }
+                    Log.w(TAG, "Insufficient storage space")
+                    return@launch
                 }
 
-                Log.d(TAG, "Image captured: $imageUri")
+                // Capture image
+                val rawImageUri = cameraManager.captureImage()
+                Log.d(TAG, "Image captured: $rawImageUri")
+
+                // Compress image
+                val compressResult = imageCompressor.compressImage(
+                    sourceUri = rawImageUri,
+                    quality = 85,
+                    maxSize = 2048
+                )
+
+                compressResult.fold(
+                    onSuccess = { compressedUri ->
+                        val fileSizeKB = imageCompressor.getFileSizeKB(compressedUri)
+                        Log.d(TAG, "Image compressed: $compressedUri, size: ${fileSizeKB}KB")
+
+                        _uiState.update {
+                            it.copy(
+                                isProcessing = false,
+                                capturedImageUri = compressedUri
+                            )
+                        }
+                    },
+                    onFailure = { error ->
+                        Log.e(TAG, "Failed to compress image", error)
+                        // Fall back to raw image if compression fails
+                        _uiState.update {
+                            it.copy(
+                                isProcessing = false,
+                                capturedImageUri = rawImageUri,
+                                error = "Image compression failed, using original"
+                            )
+                        }
+                    }
+                )
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to capture image", e)
                 _uiState.update {

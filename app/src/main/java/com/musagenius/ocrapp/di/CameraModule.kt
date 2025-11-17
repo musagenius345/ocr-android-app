@@ -2,6 +2,8 @@ package com.musagenius.ocrapp.di
 
 import android.content.Context
 import com.musagenius.ocrapp.data.camera.CameraManager
+import com.musagenius.ocrapp.data.utils.ImageCompressor
+import com.musagenius.ocrapp.data.utils.StorageManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -22,5 +24,21 @@ object CameraModule {
         @ApplicationContext context: Context
     ): CameraManager {
         return CameraManager(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideImageCompressor(
+        @ApplicationContext context: Context
+    ): ImageCompressor {
+        return ImageCompressor(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideStorageManager(
+        @ApplicationContext context: Context
+    ): StorageManager {
+        return StorageManager(context)
     }
 }
