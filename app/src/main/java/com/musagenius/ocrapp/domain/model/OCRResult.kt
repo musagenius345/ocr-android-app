@@ -8,7 +8,7 @@ data class OCRResult(
     val confidence: Float, // 0.0 to 1.0
     val processingTimeMs: Long,
     val language: String,
-    val wordCount: Int = text.trim().split("\\s+".toRegex()).size,
+    val wordCount: Int = if (text.trim().isEmpty()) 0 else text.trim().split("\\s+".toRegex()).size,
     val characterCount: Int = text.length
 ) {
     /**

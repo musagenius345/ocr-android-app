@@ -56,7 +56,8 @@ data class ScanResult(
      * Get word count of extracted text
      */
     fun getWordCount(): Int {
-        return extractedText.trim().split("\\s+".toRegex()).size
+        val trimmed = extractedText.trim()
+        return if (trimmed.isEmpty()) 0 else trimmed.split("\\s+".toRegex()).size
     }
 
     /**
