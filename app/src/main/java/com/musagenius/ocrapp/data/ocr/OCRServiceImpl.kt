@@ -5,11 +5,16 @@ import android.graphics.Bitmap
 import android.util.Log
 import com.googlecode.tesseract.android.TessBaseAPI
 import com.musagenius.ocrapp.domain.model.OCRConfig
+import com.musagenius.ocrapp.domain.model.OCRProgress
 import com.musagenius.ocrapp.domain.model.OCRResult
+import com.musagenius.ocrapp.domain.model.ProcessingStage
 import com.musagenius.ocrapp.domain.model.Result
 import com.musagenius.ocrapp.domain.service.OCRService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -150,6 +155,112 @@ class OCRServiceImpl @Inject constructor(
                 Log.e(TAG, "Error during OCR", e)
                 Result.error(e, "Failed to recognize text: ${e.message}")
             }
+        }
+    }
+
+    /**
+     * Perform OCR on the given bitmap with progress tracking
+     * Emits progress updates during processing
+     */
+    override fun recognizeTextWithProgress(
+        bitmap: Bitmap,
+        config: OCRConfig
+    ): Flow<Result<OCRProgress>> = flow {
+        val startTime = System.currentTimeMillis()
+
+        try {
+            // Stage 1: Initialization (0-20%)
+            emit(Result.success(OCRProgress(
+                progress = 0,
+                stage = ProcessingStage.INITIALIZING,
+                elapsedTimeMs = 0
+            )))
+
+            tessMutex.withLock {
+                withContext(Dispatchers.Default) {
+                    // Initialize if needed
+                    val initResult = initializeInternal(config)
+                    if (initResult is Result.Error) {
+                        emit(Result.failure(initResult.exception))
+                        return@withContext
+                    }
+
+                    emit(Result.success(OCRProgress(
+                        progress = 20,
+                        stage = ProcessingStage.INITIALIZING,
+                        elapsedTimeMs = System.currentTimeMillis() - startTime
+                    )))
+
+                    // Stage 2: Preprocessing (20-40%)
+                    emit(Result.success(OCRProgress(
+                        progress = 25,
+                        stage = ProcessingStage.PREPROCESSING,
+                        elapsedTimeMs = System.currentTimeMillis() - startTime
+                    )))
+
+                    val processedBitmap = if (config.preprocessImage) {
+                        imagePreprocessor.preprocessImage(bitmap, config.maxImageDimension)
+                    } else {
+                        bitmap
+                    }
+
+                    emit(Result.success(OCRProgress(
+                        progress = 40,
+                        stage = ProcessingStage.PREPROCESSING,
+                        elapsedTimeMs = System.currentTimeMillis() - startTime
+                    )))
+
+                    // Stage 3: Recognition (40-95%)
+                    emit(Result.success(OCRProgress(
+                        progress = 45,
+                        stage = ProcessingStage.RECOGNIZING,
+                        elapsedTimeMs = System.currentTimeMillis() - startTime
+                    )))
+
+                    // Set image for recognition
+                    tessBaseAPI?.setImage(processedBitmap)
+
+                    // Simulate progress during recognition
+                    // Tesseract doesn't provide real-time progress, so we simulate it
+                    for (progress in listOf(50, 60, 70, 80, 90, 95)) {
+                        delay(50) // Small delay to show progress updates
+                        val elapsedMs = System.currentTimeMillis() - startTime
+                        val estimatedTotalMs = if (progress > 50) {
+                            (elapsedMs * 100) / progress
+                        } else {
+                            null
+                        }
+                        val estimatedRemainingMs = estimatedTotalMs?.let { it - elapsedMs }
+
+                        emit(Result.success(OCRProgress(
+                            progress = progress,
+                            stage = ProcessingStage.RECOGNIZING,
+                            estimatedTimeRemainingMs = estimatedRemainingMs,
+                            elapsedTimeMs = elapsedMs
+                        )))
+                    }
+
+                    // Get text and confidence
+                    val text = tessBaseAPI?.getUTF8Text().orEmpty()
+                    val confidence = (tessBaseAPI?.meanConfidence() ?: 0) / 100f
+                    val processingTime = System.currentTimeMillis() - startTime
+
+                    // Stage 4: Completed (100%)
+                    emit(Result.success(OCRProgress(
+                        progress = 100,
+                        stage = ProcessingStage.COMPLETED,
+                        estimatedTimeRemainingMs = 0,
+                        elapsedTimeMs = processingTime
+                    )))
+
+                    Log.d(TAG, "OCR completed in ${processingTime}ms with confidence: ${(confidence * 100).toInt()}%")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during OCR with progress", e)
+            val elapsedMs = System.currentTimeMillis() - startTime
+            emit(Result.success(OCRProgress.failed(elapsedMs)))
+            emit(Result.failure(e))
         }
     }
 

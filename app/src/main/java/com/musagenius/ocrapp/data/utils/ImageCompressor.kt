@@ -69,7 +69,23 @@ class ImageCompressor @Inject constructor(
     }
 
     /**
-     * Load bitmap with efficient sampling
+     * Load bitmap from Uri with efficient sampling
+     * @param uri Source image URI
+     * @param maxSize Maximum dimension, default 2048
+     * @return Bitmap or null if loading fails
+     */
+    suspend fun loadBitmapFromUri(
+        uri: Uri,
+        maxSize: Int = MAX_IMAGE_SIZE
+    ): Bitmap? = withContext(Dispatchers.IO) {
+        loadSampledBitmap(uri, maxSize)?.let { bitmap ->
+            // Fix orientation based on EXIF data
+            fixOrientation(uri, bitmap)
+        }
+    }
+
+    /**
+     * Load bitmap with efficient sampling (internal use)
      */
     private fun loadSampledBitmap(uri: Uri, maxSize: Int): Bitmap? {
         return try {
