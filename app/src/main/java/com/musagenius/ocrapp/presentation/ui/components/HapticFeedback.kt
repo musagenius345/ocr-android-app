@@ -8,8 +8,6 @@ import android.os.VibratorManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
-import androidx.core.content.ContextCompat
 
 /**
  * Manager for haptic feedback
@@ -22,7 +20,7 @@ class HapticFeedbackManager(private val context: Context) {
     } else {
         @Suppress("DEPRECATION")
         context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-    }
+    }?.takeIf { it.hasVibrator() }
 
     /**
      * Light tap feedback (for buttons)
@@ -72,7 +70,7 @@ class HapticFeedbackManager(private val context: Context) {
     fun performErrorFeedback() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             vibrator?.vibrate(
-                VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK)
+                VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK)
             )
         } else {
             @Suppress("DEPRECATION")
