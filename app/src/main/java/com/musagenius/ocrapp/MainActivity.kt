@@ -17,6 +17,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.musagenius.ocrapp.presentation.navigation.Screen
 import com.musagenius.ocrapp.presentation.ui.camera.CameraScreen
+import com.musagenius.ocrapp.presentation.ui.ocr.OCRResultScreen
 import com.musagenius.ocrapp.presentation.ui.theme.OCRAppTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -65,7 +66,7 @@ fun OCRAppNavigation() {
             )
         }
 
-        // Results screen (placeholder for Phase 3)
+        // OCR Results screen
         composable(
             route = Screen.Results.route,
             arguments = listOf(
@@ -73,11 +74,10 @@ fun OCRAppNavigation() {
             )
         ) { backStackEntry ->
             val imageUriString = backStackEntry.arguments?.getString("imageUri")
-            // TODO: Implement ResultsScreen in Phase 3
-            // For now, just show a placeholder
-            PlaceholderScreen(
-                title = "Results Screen",
-                subtitle = "Image: $imageUriString",
+            val imageUri = Uri.parse(imageUriString)
+
+            OCRResultScreen(
+                imageUri = imageUri,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
