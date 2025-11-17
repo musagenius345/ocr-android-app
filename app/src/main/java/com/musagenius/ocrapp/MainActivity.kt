@@ -6,10 +6,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -60,8 +62,7 @@ fun OCRAppNavigation() {
                     navController.navigate(Screen.Results.createRoute(encodedUri))
                 },
                 onNavigateBack = {
-                    // Exit app or navigate to home (if we add one later)
-                    // For now, just finish the activity
+                    navController.navigateUp()
                 }
             )
         }
@@ -126,7 +127,7 @@ fun PlaceholderScreen(
         androidx.compose.foundation.layout.Box(
             modifier = Modifier
                 .fillMaxSize()
-                .androidx.compose.foundation.layout.padding(padding),
+                .padding(padding),
             contentAlignment = androidx.compose.ui.Alignment.Center
         ) {
             androidx.compose.foundation.layout.Column(
@@ -139,7 +140,7 @@ fun PlaceholderScreen(
                 androidx.compose.material3.Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.androidx.compose.foundation.layout.padding(top = 8.dp)
+                    modifier = Modifier.padding(top = 8.dp)
                 )
             }
         }
