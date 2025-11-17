@@ -58,8 +58,7 @@ fun OCRAppNavigation() {
             CameraScreen(
                 onImageCaptured = { imageUri ->
                     // Navigate to results screen with the captured image
-                    val encodedUri = Uri.encode(imageUri.toString())
-                    navController.navigate(Screen.Results.createRoute(encodedUri))
+                    navController.navigate(Screen.Results.createRoute(imageUri.toString()))
                 },
                 onNavigateBack = {
                     navController.navigateUp()
@@ -74,8 +73,9 @@ fun OCRAppNavigation() {
                 navArgument("imageUri") { type = NavType.StringType }
             )
         ) { backStackEntry ->
-            val imageUriString = backStackEntry.arguments?.getString("imageUri")
-            val imageUri = Uri.parse(imageUriString)
+            val encodedUriString = backStackEntry.arguments?.getString("imageUri")
+            val decodedUriString = encodedUriString?.let { Uri.decode(it) }
+            val imageUri = Uri.parse(decodedUriString)
 
             OCRResultScreen(
                 imageUri = imageUri,
