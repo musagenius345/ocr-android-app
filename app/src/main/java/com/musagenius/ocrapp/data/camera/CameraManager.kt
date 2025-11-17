@@ -17,15 +17,16 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.Executor
 import javax.inject.Inject
-import javax.inject.Singleton
+import dagger.hilt.android.scopes.ActivityRetainedScoped
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 /**
  * Manages CameraX operations
+ * Scoped to activity lifecycle to ensure proper camera resource cleanup
  */
-@Singleton
+@ActivityRetainedScoped
 class CameraManager @Inject constructor(
     private val context: Context
 ) {

@@ -7,24 +7,38 @@ import com.musagenius.ocrapp.data.utils.StorageManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.components.ActivityRetainedComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.android.scopes.ActivityRetainedScoped
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 /**
- * Hilt module for camera-related dependencies
+ * Hilt module for camera manager (activity-retained scope)
+ * CameraManager is scoped to the activity lifecycle to ensure proper
+ * resource cleanup when the activity is destroyed
  */
 @Module
-@InstallIn(SingletonComponent::class)
-object CameraModule {
+@InstallIn(ActivityRetainedComponent::class)
+object CameraManagerModule {
 
     @Provides
-    @Singleton
+    @ActivityRetainedScoped
     fun provideCameraManager(
         @ApplicationContext context: Context
     ): CameraManager {
         return CameraManager(context)
     }
+}
+
+/**
+ * Hilt module for utility dependencies (singleton scope)
+ * ImageCompressor and StorageManager are stateless utilities that can be
+ * safely shared across the entire application lifecycle
+ */
+@Module
+@InstallIn(SingletonComponent::class)
+object UtilityModule {
 
     @Provides
     @Singleton
