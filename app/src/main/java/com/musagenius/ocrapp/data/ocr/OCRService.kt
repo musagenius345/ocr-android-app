@@ -9,6 +9,8 @@ import com.musagenius.ocrapp.domain.model.OCRResult
 import com.musagenius.ocrapp.domain.model.Result
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
@@ -17,12 +19,16 @@ import javax.inject.Singleton
 
 /**
  * Service for performing OCR using Tesseract
+ * Thread-safe singleton that serializes all tessBaseAPI access
  */
 @Singleton
 class OCRService @Inject constructor(
     @ApplicationContext private val context: Context,
     private val imagePreprocessor: ImagePreprocessor
 ) {
+    // Mutex to serialize all access to tessBaseAPI, preventing race conditions
+    private val tessMutex = Mutex()
+
     private var tessBaseAPI: TessBaseAPI? = null
     private var currentLanguage: String = ""
     private val tessdataPath: String by lazy {
@@ -37,9 +43,10 @@ class OCRService @Inject constructor(
     }
 
     /**
-     * Initialize Tesseract with the specified configuration
+     * Internal initialization logic without lock
+     * Must only be called from within a mutex.withLock block
      */
-    suspend fun initialize(config: OCRConfig = OCRConfig()): Result<Unit> = withContext(Dispatchers.IO) {
+    private suspend fun initializeInternal(config: OCRConfig): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             // Ensure tessdata directory exists
             val tessdataDir = File(tessdataPath)
@@ -84,55 +91,64 @@ class OCRService @Inject constructor(
     }
 
     /**
+     * Initialize Tesseract with the specified configuration
+     */
+    suspend fun initialize(config: OCRConfig = OCRConfig()): Result<Unit> = tessMutex.withLock {
+        initializeInternal(config)
+    }
+
+    /**
      * Perform OCR on the given bitmap
      */
     suspend fun recognizeText(
         bitmap: Bitmap,
         config: OCRConfig = OCRConfig()
-    ): Result<OCRResult> = withContext(Dispatchers.Default) {
-        try {
-            val startTime = System.currentTimeMillis()
+    ): Result<OCRResult> = tessMutex.withLock {
+        withContext(Dispatchers.Default) {
+            try {
+                val startTime = System.currentTimeMillis()
 
-            // Initialize if needed
-            val initResult = initialize(config)
-            if (initResult is Result.Error) {
-                return@withContext Result.error(
-                    initResult.exception,
-                    "Failed to initialize OCR: ${initResult.message}"
+                // Initialize if needed (call internal method to avoid deadlock)
+                val initResult = initializeInternal(config)
+                if (initResult is Result.Error) {
+                    return@withContext Result.error(
+                        initResult.exception,
+                        "Failed to initialize OCR: ${initResult.message}"
+                    )
+                }
+
+                // Preprocess image if enabled
+                val processedBitmap = if (config.preprocessImage) {
+                    imagePreprocessor.preprocessImage(bitmap, config.maxImageDimension)
+                } else {
+                    bitmap
+                }
+
+                // Set image for recognition
+                tessBaseAPI?.setImage(processedBitmap)
+
+                // Get text using the correct method call
+                val text = tessBaseAPI?.getUTF8Text().orEmpty()
+
+                // Get confidence (0-100, convert to 0-1)
+                val confidence = (tessBaseAPI?.meanConfidence() ?: 0) / 100f
+
+                val processingTime = System.currentTimeMillis() - startTime
+
+                val result = OCRResult(
+                    text = text.trim(),
+                    confidence = confidence,
+                    processingTimeMs = processingTime,
+                    language = config.language
                 )
+
+                Log.d(TAG, "OCR completed in ${processingTime}ms with confidence: ${result.getConfidencePercentage()}")
+
+                Result.success(result)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during OCR", e)
+                Result.error(e, "Failed to recognize text: ${e.message}")
             }
-
-            // Preprocess image if enabled
-            val processedBitmap = if (config.preprocessImage) {
-                imagePreprocessor.preprocessImage(bitmap, config.maxImageDimension)
-            } else {
-                bitmap
-            }
-
-            // Set image for recognition
-            tessBaseAPI?.setImage(processedBitmap)
-
-            // Get text using the correct method call
-            val text = tessBaseAPI?.getUTF8Text().orEmpty()
-
-            // Get confidence (0-100, convert to 0-1)
-            val confidence = (tessBaseAPI?.meanConfidence() ?: 0) / 100f
-
-            val processingTime = System.currentTimeMillis() - startTime
-
-            val result = OCRResult(
-                text = text.trim(),
-                confidence = confidence,
-                processingTimeMs = processingTime,
-                language = config.language
-            )
-
-            Log.d(TAG, "OCR completed in ${processingTime}ms with confidence: ${result.getConfidencePercentage()}")
-
-            Result.success(result)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error during OCR", e)
-            Result.error(e, "Failed to recognize text: ${e.message}")
         }
     }
 
