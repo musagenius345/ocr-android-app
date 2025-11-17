@@ -7,6 +7,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.musagenius.ocrapp.data.camera.CameraManager
+import com.musagenius.ocrapp.data.camera.DocumentEdgeDetector
 import com.musagenius.ocrapp.data.utils.ImageCompressor
 import com.musagenius.ocrapp.data.utils.StorageManager
 import com.musagenius.ocrapp.presentation.ui.camera.CameraEvent
@@ -76,6 +77,11 @@ class CameraViewModel @Inject constructor(
                     flashMode = _uiState.value.flashMode,
                     cameraFacing = _uiState.value.cameraFacing
                 )
+
+                // Set up edge detection callback
+                cameraManager.setEdgeDetectionCallback { corners ->
+                    onEvent(CameraEvent.UpdateDocumentCorners(corners))
+                }
 
                 // Update camera capabilities after starting
                 updateCameraCapabilities()
@@ -319,6 +325,7 @@ class CameraViewModel @Inject constructor(
      */
     override fun onCleared() {
         super.onCleared()
+        cameraManager.clearEdgeDetectionCallback()
         cameraManager.release()
         Log.d(TAG, "ViewModel cleared, camera released")
     }

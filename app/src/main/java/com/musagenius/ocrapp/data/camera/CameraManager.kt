@@ -10,7 +10,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.musagenius.ocrapp.presentation.ui.camera.CameraFacing
 import com.musagenius.ocrapp.presentation.ui.camera.FlashMode
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
@@ -82,6 +84,17 @@ class CameraManager @Inject constructor(
                 .setFlashMode(flashMode.toImageCaptureFlashMode())
                 .build()
 
+            // Set up ImageAnalysis for edge detection
+            imageAnalysis = ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build()
+                .also { analysis ->
+                    analysis.setAnalyzer(executor) { imageProxy ->
+                        // Process image for edge detection on background thread
+                        processImageForEdgeDetection(imageProxy)
+                    }
+                }
+
             // Select camera based on facing
             val cameraSelector = when (cameraFacing) {
                 CameraFacing.BACK -> CameraSelector.DEFAULT_BACK_CAMERA
@@ -93,7 +106,8 @@ class CameraManager @Inject constructor(
                 lifecycleOwner,
                 cameraSelector,
                 preview,
-                imageCapture
+                imageCapture,
+                imageAnalysis
             )
 
             Log.d(TAG, "Camera started successfully with ${cameraFacing.getDisplayName()}")
@@ -228,6 +242,54 @@ class CameraManager @Inject constructor(
     }
 
     /**
+     * Set callback for edge detection results
+     */
+    fun setEdgeDetectionCallback(callback: (DocumentEdgeDetector.DocumentCorners?) -> Unit) {
+        edgeDetectionCallback = callback
+    }
+
+    /**
+     * Clear edge detection callback
+     */
+    fun clearEdgeDetectionCallback() {
+        edgeDetectionCallback = null
+    }
+
+    /**
+     * Process image for edge detection
+     * Called by ImageAnalysis analyzer
+     */
+    private fun processImageForEdgeDetection(imageProxy: ImageProxy) {
+        try {
+            // Only process if there's a callback registered
+            val callback = edgeDetectionCallback
+            if (callback == null) {
+                imageProxy.close()
+                return
+            }
+
+            // Launch coroutine to detect edges asynchronously
+            CoroutineScope(Dispatchers.Default).launch {
+                try {
+                    val corners = documentEdgeDetector.detectEdges(imageProxy)
+
+                    // Post result on main thread
+                    withContext(Dispatchers.Main) {
+                        callback(corners)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error detecting edges", e)
+                } finally {
+                    imageProxy.close()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in edge detection processing", e)
+            imageProxy.close()
+        }
+    }
+
+    /**
      * Release camera resources
      */
     fun release() {
@@ -235,6 +297,8 @@ class CameraManager @Inject constructor(
         camera = null
         preview = null
         imageCapture = null
+        imageAnalysis = null
+        edgeDetectionCallback = null
         Log.d(TAG, "Camera released")
     }
 
