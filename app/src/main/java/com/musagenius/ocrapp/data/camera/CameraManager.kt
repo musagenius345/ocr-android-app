@@ -31,7 +31,8 @@ import kotlin.coroutines.suspendCoroutine
 @ActivityRetainedScoped
 class CameraManager @Inject constructor(
     private val context: Context,
-    private val documentEdgeDetector: DocumentEdgeDetector
+    private val documentEdgeDetector: DocumentEdgeDetector,
+    private val lowLightDetector: LowLightDetector
 ) {
     private var cameraProvider: ProcessCameraProvider? = null
     private var camera: Camera? = null
@@ -45,6 +46,9 @@ class CameraManager @Inject constructor(
 
     // Callback for edge detection results
     private var edgeDetectionCallback: ((DocumentEdgeDetector.DocumentCorners?) -> Unit)? = null
+
+    // Callback for lighting condition updates
+    private var lightingConditionCallback: ((LowLightDetector.LightingCondition) -> Unit)? = null
 
     companion object {
         private const val TAG = "CameraManager"
@@ -256,35 +260,64 @@ class CameraManager @Inject constructor(
     }
 
     /**
-     * Process image for edge detection
+     * Set callback for lighting condition updates
+     */
+    fun setLightingConditionCallback(callback: (LowLightDetector.LightingCondition) -> Unit) {
+        lightingConditionCallback = callback
+    }
+
+    /**
+     * Clear lighting condition callback
+     */
+    fun clearLightingConditionCallback() {
+        lightingConditionCallback = null
+    }
+
+    /**
+     * Process image for edge detection and lighting analysis
      * Called by ImageAnalysis analyzer
      */
     private fun processImageForEdgeDetection(imageProxy: ImageProxy) {
         try {
-            // Only process if there's a callback registered
-            val callback = edgeDetectionCallback
-            if (callback == null) {
+            val edgeCallback = edgeDetectionCallback
+            val lightCallback = lightingConditionCallback
+
+            // Only process if there's at least one callback registered
+            if (edgeCallback == null && lightCallback == null) {
                 imageProxy.close()
                 return
             }
 
-            // Launch coroutine to detect edges asynchronously
+            // Launch coroutine to process image asynchronously
             CoroutineScope(Dispatchers.Default).launch {
                 try {
-                    val corners = documentEdgeDetector.detectEdges(imageProxy)
+                    // Detect edges if callback is registered
+                    val corners = if (edgeCallback != null) {
+                        documentEdgeDetector.detectEdges(imageProxy)
+                    } else {
+                        null
+                    }
 
-                    // Post result on main thread
+                    // Detect lighting condition if callback is registered
+                    val lightCondition = if (lightCallback != null) {
+                        lowLightDetector.detectLightingCondition(imageProxy)
+                    } else {
+                        null
+                    }
+
+                    // Post results on main thread
                     withContext(Dispatchers.Main) {
-                        callback(corners)
+                        edgeCallback?.invoke(corners)
+                        lightCondition?.let { lightCallback?.invoke(it) }
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error detecting edges", e)
+                    Log.e(TAG, "Error in image analysis", e)
                 } finally {
                     imageProxy.close()
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error in edge detection processing", e)
+            Log.e(TAG, "Error in image analysis processing", e)
             imageProxy.close()
         }
     }
@@ -299,6 +332,7 @@ class CameraManager @Inject constructor(
         imageCapture = null
         imageAnalysis = null
         edgeDetectionCallback = null
+        lightingConditionCallback = null
         Log.d(TAG, "Camera released")
     }
 

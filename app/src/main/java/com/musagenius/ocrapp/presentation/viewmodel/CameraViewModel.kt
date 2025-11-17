@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.musagenius.ocrapp.data.camera.CameraManager
 import com.musagenius.ocrapp.data.camera.DocumentEdgeDetector
+import com.musagenius.ocrapp.data.camera.LowLightDetector
 import com.musagenius.ocrapp.data.utils.ImageCompressor
 import com.musagenius.ocrapp.data.utils.StorageManager
 import com.musagenius.ocrapp.presentation.ui.camera.CameraEvent
@@ -57,6 +58,8 @@ class CameraViewModel @Inject constructor(
             is CameraEvent.ToggleDocumentOverlay -> toggleDocumentOverlay()
             is CameraEvent.UpdateDocumentCorners -> updateDocumentCorners(event.corners)
             is CameraEvent.UpdatePreviewSize -> updatePreviewSize(event.width, event.height)
+            is CameraEvent.UpdateLightingCondition -> updateLightingCondition(event.condition)
+            is CameraEvent.DismissLowLightWarning -> dismissLowLightWarning()
         }
     }
 
@@ -81,6 +84,11 @@ class CameraViewModel @Inject constructor(
                 // Set up edge detection callback
                 cameraManager.setEdgeDetectionCallback { corners ->
                     onEvent(CameraEvent.UpdateDocumentCorners(corners))
+                }
+
+                // Set up lighting condition callback
+                cameraManager.setLightingConditionCallback { condition ->
+                    onEvent(CameraEvent.UpdateLightingCondition(condition))
                 }
 
                 // Update camera capabilities after starting
@@ -275,6 +283,22 @@ class CameraViewModel @Inject constructor(
     }
 
     /**
+     * Update lighting condition from camera analysis
+     */
+    private fun updateLightingCondition(condition: LowLightDetector.LightingCondition) {
+        _uiState.update { it.copy(lightingCondition = condition) }
+        Log.d(TAG, "Lighting condition updated: $condition")
+    }
+
+    /**
+     * Dismiss low light warning
+     */
+    private fun dismissLowLightWarning() {
+        _uiState.update { it.copy(showLowLightWarning = false) }
+        Log.d(TAG, "Low light warning dismissed")
+    }
+
+    /**
      * Update camera capabilities (zoom range, exposure range)
      */
     private fun updateCameraCapabilities() {
@@ -326,6 +350,7 @@ class CameraViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         cameraManager.clearEdgeDetectionCallback()
+        cameraManager.clearLightingConditionCallback()
         cameraManager.release()
         Log.d(TAG, "ViewModel cleared, camera released")
     }

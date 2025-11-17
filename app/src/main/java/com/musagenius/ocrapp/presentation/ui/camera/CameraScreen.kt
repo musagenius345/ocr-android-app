@@ -28,6 +28,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import com.musagenius.ocrapp.data.camera.LowLightDetector
 import com.musagenius.ocrapp.presentation.ui.components.DocumentOverlay
 import com.musagenius.ocrapp.presentation.ui.components.GridOverlay
 import com.musagenius.ocrapp.presentation.ui.components.ShutterAnimation
@@ -215,6 +216,28 @@ fun CameraScreen(
                                 corners = uiState.documentCorners,
                                 viewWidth = uiState.previewWidth,
                                 viewHeight = uiState.previewHeight
+                            )
+                        }
+
+                        // Low light warning
+                        if (uiState.showLowLightWarning &&
+                            (uiState.lightingCondition == LowLightDetector.LightingCondition.LOW ||
+                             uiState.lightingCondition == LowLightDetector.LightingCondition.VERY_LOW)
+                        ) {
+                            LowLightWarning(
+                                modifier = Modifier
+                                    .align(Alignment.TopCenter)
+                                    .padding(top = 16.dp),
+                                condition = uiState.lightingCondition,
+                                onDismiss = {
+                                    viewModel.onEvent(CameraEvent.DismissLowLightWarning)
+                                },
+                                onEnableFlash = {
+                                    if (uiState.flashMode == FlashMode.OFF) {
+                                        haptic.performLightTap()
+                                        viewModel.onEvent(CameraEvent.ToggleFlash)
+                                    }
+                                }
                             )
                         }
 
@@ -571,6 +594,133 @@ fun CameraTopControls(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun LowLightWarning(
+    modifier: Modifier = Modifier,
+    condition: LowLightDetector.LightingCondition,
+    onDismiss: () -> Unit,
+    onEnableFlash: () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth(0.9f)
+            .semantics {
+                contentDescription = when (condition) {
+                    LowLightDetector.LightingCondition.VERY_LOW ->
+                        "Very low light detected. Enable flash for better results."
+                    LowLightDetector.LightingCondition.LOW ->
+                        "Low light detected. Consider enabling flash."
+                    else -> ""
+                }
+            },
+        color = when (condition) {
+            LowLightDetector.LightingCondition.VERY_LOW ->
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.95f)
+            LowLightDetector.LightingCondition.LOW ->
+                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.95f)
+            else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+        },
+        shape = MaterialTheme.shapes.medium,
+        tonalElevation = 4.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = when (condition) {
+                    LowLightDetector.LightingCondition.VERY_LOW -> Icons.Default.Warning
+                    LowLightDetector.LightingCondition.LOW -> Icons.Default.Lightbulb
+                    else -> Icons.Default.Info
+                },
+                contentDescription = null,
+                tint = when (condition) {
+                    LowLightDetector.LightingCondition.VERY_LOW ->
+                        MaterialTheme.colorScheme.onErrorContainer
+                    LowLightDetector.LightingCondition.LOW ->
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    else -> MaterialTheme.colorScheme.onSurface
+                }
+            )
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = when (condition) {
+                        LowLightDetector.LightingCondition.VERY_LOW -> "Very Low Light"
+                        LowLightDetector.LightingCondition.LOW -> "Low Light"
+                        else -> "Lighting OK"
+                    },
+                    style = MaterialTheme.typography.labelLarge,
+                    color = when (condition) {
+                        LowLightDetector.LightingCondition.VERY_LOW ->
+                            MaterialTheme.colorScheme.onErrorContainer
+                        LowLightDetector.LightingCondition.LOW ->
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+                )
+                Text(
+                    text = when (condition) {
+                        LowLightDetector.LightingCondition.VERY_LOW ->
+                            "Enable flash for better results"
+                        LowLightDetector.LightingCondition.LOW ->
+                            "Consider enabling flash"
+                        else -> ""
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = when (condition) {
+                        LowLightDetector.LightingCondition.VERY_LOW ->
+                            MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                        LowLightDetector.LightingCondition.LOW ->
+                            MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    }
+                )
+            }
+
+            // Flash button
+            IconButton(
+                onClick = onEnableFlash,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FlashOn,
+                    contentDescription = "Enable flash",
+                    tint = when (condition) {
+                        LowLightDetector.LightingCondition.VERY_LOW ->
+                            MaterialTheme.colorScheme.onErrorContainer
+                        LowLightDetector.LightingCondition.LOW ->
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+                )
+            }
+
+            // Dismiss button
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Dismiss warning",
+                    tint = when (condition) {
+                        LowLightDetector.LightingCondition.VERY_LOW ->
+                            MaterialTheme.colorScheme.onErrorContainer
+                        LowLightDetector.LightingCondition.LOW ->
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+                )
             }
         }
     }
