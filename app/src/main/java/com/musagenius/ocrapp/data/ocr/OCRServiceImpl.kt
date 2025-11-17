@@ -104,7 +104,14 @@ class OCRServiceImpl @Inject constructor(
     }
 
     /**
-     * Perform OCR on the given bitmap
+     * Recognizes text from the provided bitmap and returns structured OCR results.
+     *
+     * Ensures the OCR engine is initialized as needed, applies optional image preprocessing from the config,
+     * performs recognition, and reports the recognized text, confidence, processing duration, and language.
+     *
+     * @param bitmap The image to perform OCR on.
+     * @param config Configuration options for OCR (language, preprocessing, page segmentation mode, etc.). Defaults to a standard OCRConfig.
+     * @return A Result containing an OCRResult on success; a failure Result carrying the exception and an explanatory message on error.
      */
     suspend fun recognizeText(
         bitmap: Bitmap,
@@ -159,9 +166,17 @@ class OCRServiceImpl @Inject constructor(
     }
 
     /**
-     * Perform OCR on the given bitmap with progress tracking
-     * Emits progress updates during processing
-     */
+     * Performs OCR on the provided bitmap while emitting incremental progress updates.
+     *
+     * Emits progress updates that describe the current processing stage (INITIALIZING, PREPROCESSING,
+     * RECOGNIZING, COMPLETED), elapsed time, and an optional estimated remaining time. The operation
+     * acquires the OCR engine lock to ensure serialized access and will emit a failure result if an
+     * error occurs.
+     *
+     * @param bitmap The image to run OCR on.
+     * @param config Configuration that controls OCR behavior (language, preprocessing, etc.).
+     * @return A Flow that emits Result-wrapped OCRProgress items: successful progress updates during
+     * processing and a final success on completion, or a failure Result if an error occurs.
     override fun recognizeTextWithProgress(
         bitmap: Bitmap,
         config: OCRConfig

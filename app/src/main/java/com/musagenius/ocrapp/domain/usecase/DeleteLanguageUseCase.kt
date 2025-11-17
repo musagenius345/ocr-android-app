@@ -15,9 +15,10 @@ class DeleteLanguageUseCase @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     /**
-     * Delete a language data file
-     * @param languageCode The language code to delete (e.g., "eng", "fra")
-     * @return Result indicating success or failure
+     * Deletes the traineddata file for the given language code from the app's tessdata directory.
+     *
+     * @param languageCode The ISO-like language code identifying the traineddata file (e.g., "fra"). The default English code "eng" cannot be deleted.
+     * @return A Result containing `Unit` on success, or a failure with an Exception describing why deletion did not occur (for example: default language protected, file not found, or deletion failure).
      */
     suspend operator fun invoke(languageCode: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
@@ -53,10 +54,11 @@ class DeleteLanguageUseCase @Inject constructor(
     }
 
     /**
-     * Delete multiple language data files
-     * @param languageCodes List of language codes to delete
-     * @return Result containing map of language codes to deletion status (true if deleted)
-     */
+         * Deletes multiple language data files corresponding to the provided language codes.
+         *
+         * @param languageCodes The list of language codes whose `.traineddata` files should be deleted.
+         * @return A Result containing a map from each language code to `true` if its file was deleted, `false` otherwise.
+         */
     suspend fun deleteMultiple(languageCodes: List<String>): Result<Map<String, Boolean>> =
         withContext(Dispatchers.IO) {
             try {
@@ -73,8 +75,9 @@ class DeleteLanguageUseCase @Inject constructor(
         }
 
     /**
-     * Calculate total size of all language files
-     * @return Result containing total size in bytes
+     * Compute the total size of all `.traineddata` language files in the app's `tessdata` external files directory.
+     *
+     * @return The total size in bytes of all `.traineddata` files (0 if none). On error, returns `Result.failure` with the encountered exception.
      */
     suspend fun getTotalLanguageFilesSize(): Result<Long> = withContext(Dispatchers.IO) {
         try {
@@ -95,9 +98,10 @@ class DeleteLanguageUseCase @Inject constructor(
     }
 
     /**
-     * Get size of a specific language file
-     * @param languageCode The language code to check
-     * @return Result containing file size in bytes (0 if not found)
+     * Retrieve the size of the traineddata file for the given language code.
+     *
+     * @param languageCode The language code corresponding to the traineddata file (e.g., "eng", "fra").
+     * @return A `Result` containing the file size in bytes; contains `0` if the file does not exist. On error, returns a failure `Result` containing the caught exception.
      */
     suspend fun getLanguageFileSize(languageCode: String): Result<Long> = withContext(Dispatchers.IO) {
         try {
