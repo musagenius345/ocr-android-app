@@ -1,0 +1,2 @@
+# This file ensures the tessdata directory is tracked by git
+# Language files (*.traineddata) are gitignored due to their large size
