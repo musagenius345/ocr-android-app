@@ -7,11 +7,13 @@ import androidx.lifecycle.viewModelScope
 import com.musagenius.ocrapp.domain.model.OCRConfig
 import com.musagenius.ocrapp.domain.model.ScanResult
 import com.musagenius.ocrapp.domain.repository.ScanRepository
+import com.musagenius.ocrapp.domain.service.OCRService
 import com.musagenius.ocrapp.domain.usecase.ProcessImageUseCase
 import com.musagenius.ocrapp.presentation.ui.ocr.OCREvent
 import com.musagenius.ocrapp.presentation.ui.ocr.OCRUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,7 +28,8 @@ import javax.inject.Inject
 @HiltViewModel
 class OCRViewModel @Inject constructor(
     private val processImageUseCase: ProcessImageUseCase,
-    private val scanRepository: ScanRepository
+    private val scanRepository: ScanRepository,
+    private val ocrService: OCRService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OCRUiState())
@@ -68,6 +71,13 @@ class OCRViewModel @Inject constructor(
     private fun processImage(imageUri: Uri, language: String) {
         // Cancel any ongoing OCR job to prevent concurrent processing
         currentJob?.cancel()
+
+        // Stop any ongoing OCR processing in Tesseract
+        try {
+            ocrService.stop()
+        } catch (e: Exception) {
+            Log.w(TAG, "Error stopping previous OCR job", e)
+        }
 
         currentJob = viewModelScope.launch {
             try {
@@ -120,6 +130,24 @@ class OCRViewModel @Inject constructor(
                         }
                     )
                 }
+            } catch (e: CancellationException) {
+                // Job was cancelled - stop OCR processing and clean up
+                Log.d(TAG, "OCR job cancelled, cleaning up resources")
+                try {
+                    ocrService.stop()
+                } catch (ex: Exception) {
+                    Log.w(TAG, "Error stopping OCR service after cancellation", ex)
+                }
+
+                _uiState.update {
+                    it.copy(
+                        isProcessing = false,
+                        error = null // Don't show error for user-initiated cancellation
+                    )
+                }
+
+                // Re-throw to properly propagate cancellation
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Error during OCR processing", e)
                 _uiState.update {
@@ -128,6 +156,17 @@ class OCRViewModel @Inject constructor(
                         error = "An error occurred: ${e.localizedMessage}"
                     )
                 }
+            }
+        }
+
+        // Add completion handler to ensure cleanup happens
+        currentJob?.invokeOnCompletion { throwable ->
+            if (throwable is CancellationException) {
+                Log.d(TAG, "OCR job completion handler: Job was cancelled")
+            } else if (throwable != null) {
+                Log.e(TAG, "OCR job completion handler: Job failed with error", throwable)
+            } else {
+                Log.d(TAG, "OCR job completion handler: Job completed successfully")
             }
         }
     }
@@ -223,5 +262,53 @@ class OCRViewModel @Inject constructor(
      */
     fun setImageUri(uri: Uri, language: String = "eng") {
         processImage(uri, language)
+    }
+
+    /**
+     * Cancel current OCR processing
+     */
+    fun cancelProcessing() {
+        Log.d(TAG, "Cancelling OCR processing")
+
+        // Cancel the current job
+        currentJob?.cancel()
+        currentJob = null
+
+        // Stop Tesseract processing
+        try {
+            ocrService.stop()
+            Log.d(TAG, "OCR processing stopped successfully")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping OCR service", e)
+        }
+
+        // Update UI state
+        _uiState.update {
+            it.copy(
+                isProcessing = false,
+                error = "Processing cancelled"
+            )
+        }
+    }
+
+    /**
+     * Clean up resources when ViewModel is destroyed
+     */
+    override fun onCleared() {
+        super.onCleared()
+        Log.d(TAG, "ViewModel being cleared, cleaning up resources")
+
+        // Cancel any ongoing processing
+        currentJob?.cancel()
+        currentJob = null
+
+        // Clean up OCR service resources
+        // Note: We don't call cleanup() here as OCRService is a singleton
+        // and might be used by other components. We just stop any ongoing processing.
+        try {
+            ocrService.stop()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping OCR service during cleanup", e)
+        }
     }
 }
