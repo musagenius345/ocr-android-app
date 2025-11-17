@@ -21,6 +21,76 @@ Create a modern, offline-first Android OCR application that allows users to quic
 - 🗂️ Local storage with searchable history
 - 🌍 Multi-language support (100+ languages)
 - 🔒 Privacy-first - all processing happens on device
+- ♿ Accessible to all users - WCAG 2.1 AA compliant
+
+---
+
+## Accessibility-First Development Strategy
+
+**Philosophy:** Accessibility is not a Phase 6 afterthought—it's built into every phase from the start.
+
+### Shift-Left Approach
+
+**Phase 1 (Foundation):**
+- Set up accessibility testing infrastructure
+- Document WCAG 2.1 AA requirements
+- Establish contrast ratios and touch target sizes
+
+**Phases 2-4 (UI Development):**
+- **Every UI feature must pass accessibility review before merge**
+- Content descriptions mandatory for all interactive elements
+- Automated accessibility scanner runs in CI/CD
+- Manual TalkBack testing for every screen
+- Text scaling support verified (up to 200%)
+
+**Phase 6 (Final Audit):**
+- Comprehensive end-to-end testing
+- Edge case validation (300% scaling, voice control, switch access)
+- Documentation for assistive technology users
+
+### Acceptance Criteria (Applied to All UI Work)
+
+**Required for all screens:**
+- [ ] All interactive elements have meaningful content descriptions
+- [ ] Color contrast ≥ 4.5:1 for text, ≥ 3:1 for large text
+- [ ] Touch targets ≥ 48x48dp
+- [ ] Works with TalkBack screen reader
+- [ ] Supports text scaling up to 200%
+- [ ] Logical focus order
+- [ ] Passes automated accessibility scanner
+
+**Review Gates:**
+- Accessibility review required before merging any UI PR
+- Automated scanner must pass with 0 errors
+- Manual TalkBack test required for new screens
+
+### WCAG 2.1 Level AA Compliance
+
+**Perceivable:**
+- Text alternatives for non-text content
+- Adequate color contrast
+- Text can be resized up to 200%
+- Content not dependent on color alone
+
+**Operable:**
+- All functionality available via keyboard/TalkBack
+- Sufficient time to interact with content
+- No content that causes seizures
+- Clear navigation and purpose
+
+**Understandable:**
+- Readable and predictable interfaces
+- Input assistance and error prevention
+- Consistent navigation patterns
+
+**Robust:**
+- Compatible with assistive technologies
+- Works across different Android versions (API 24+)
+
+**Cost of Fixing Later:**
+- Fixing accessibility issues in Phase 6 costs 10-100x more than building it right from Phase 2
+- Retrofitting can require UI redesigns and architectural changes
+- Early accessibility prevents expensive rework
 
 ---
 
@@ -137,6 +207,14 @@ Establish the foundational data layer and OCR engine integration that all featur
 #### Goals
 Implement camera functionality to capture documents and images for OCR processing.
 
+**Accessibility Requirements (WCAG 2.1 AA):**
+- All interactive elements must have content descriptions
+- Color contrast ratio ≥ 4.5:1 for normal text, ≥ 3:1 for large text
+- Minimum touch target size: 48x48dp
+- Support dynamic text scaling (up to 200%)
+- TalkBack navigation must be logical and complete
+- Camera controls must be accessible without vision
+
 #### Milestones
 
 ##### Milestone 2.1: Camera Permissions & Setup (Week 3-4)
@@ -154,11 +232,16 @@ Implement camera functionality to capture documents and images for OCR processin
   - Capture button
   - Basic controls
 - [ ] Handle camera lifecycle events
+- [ ] **Accessibility:** Add content descriptions to all controls
+- [ ] **Accessibility:** Run automated accessibility scanner
+- [ ] **Accessibility:** Test with TalkBack enabled
 
 **Success Criteria:**
 - Camera preview works on various devices
 - Smooth permission flow
 - No memory leaks
+- **Passes accessibility scanner with 0 errors**
+- **TalkBack users can capture images independently**
 
 ##### Milestone 2.2: Image Capture & Storage (Week 4-5)
 **Objective:** Capture high-quality images and save them efficiently
@@ -193,11 +276,17 @@ Implement camera functionality to capture documents and images for OCR processin
 - [ ] Exposure compensation
 - [ ] Grid overlay
 - [ ] Create polished camera UI
+- [ ] **Accessibility:** Ensure 48x48dp minimum touch targets
+- [ ] **Accessibility:** Add semantic labels for all controls
+- [ ] **Accessibility:** Support text scaling (test at 200%)
+- [ ] **Accessibility Review Gate:** Required before merge
 
 **Success Criteria:**
 - All controls work smoothly
 - UI is intuitive and responsive
 - Professional look and feel
+- **Accessibility review approved**
+- **All controls usable with TalkBack**
 
 ---
 
@@ -281,11 +370,18 @@ Build robust image processing and OCR pipeline with excellent accuracy.
   - Smooth animations
   - Material 3 components
   - Success feedback
+- [ ] **Accessibility:** Content descriptions for all actions
+- [ ] **Accessibility:** Verify text field supports TalkBack editing
+- [ ] **Accessibility:** Check color contrast (4.5:1 minimum)
+- [ ] **Accessibility:** Test with large text settings (200% scale)
+- [ ] **Accessibility Review Gate:** Required before merge
 
 **Success Criteria:**
 - Clean, intuitive results display
 - All actions work correctly
 - Fast and responsive UI
+- **Accessibility review passed**
+- **Readable with screen readers**
 
 ---
 
@@ -314,11 +410,17 @@ Create a powerful history feature for managing scanned documents.
   - Long-press for multi-select
 - [ ] Add empty state handling
 - [ ] Implement pagination (Paging 3)
+- [ ] **Accessibility:** List item content descriptions
+- [ ] **Accessibility:** Swipe actions work with TalkBack gestures
+- [ ] **Accessibility:** Empty state has meaningful description
+- [ ] **Accessibility Review Gate:** Required before merge
 
 **Success Criteria:**
 - Smooth scrolling even with 100+ items
 - Beautiful card designs
 - Intuitive interactions
+- **TalkBack navigation is logical**
+- **All actions accessible without vision**
 
 ##### Milestone 4.2: Search & Filter (Week 10-11)
 **Objective:** Make scans easily discoverable
@@ -493,21 +595,32 @@ Refine the app to production quality with optimizations and polish.
 - Clear feedback for all actions
 - Professional feel
 
-##### Milestone 6.3: Accessibility (Week 14-15)
-**Objective:** Make the app accessible to all users
+##### Milestone 6.3: Final Accessibility Audit (Week 14-15)
+**Objective:** Comprehensive accessibility audit and final fixes
 
-- [ ] Add content descriptions
-- [ ] Test with TalkBack
-- [ ] Ensure proper contrast ratios
-- [ ] Support text scaling
-- [ ] Keyboard navigation (if applicable)
-- [ ] Test with accessibility scanner
-- [ ] Fix all accessibility issues
+**Note:** Basic accessibility is built into Phases 2-4. This milestone focuses on:
+- [ ] End-to-end accessibility testing
+  - Complete user flows with TalkBack only
+  - Test all features with voice control
+  - Verify switch access works
+- [ ] Automated testing
+  - Run full accessibility scanner suite
+  - Check all screens for WCAG violations
+  - Verify contrast ratios programmatically
+- [ ] Edge case testing
+  - Extreme text scaling (300%+)
+  - Combination of accessibility features
+  - Low vision / high contrast mode
+- [ ] Fix any remaining issues
+- [ ] Create accessibility documentation
+  - User guide for screen reader users
+  - Known limitations and workarounds
 
 **Success Criteria:**
-- Passes accessibility scanner
-- Works well with TalkBack
-- WCAG 2.1 Level AA compliance
+- Passes accessibility scanner with 0 errors
+- All user flows completable with TalkBack
+- WCAG 2.1 Level AA compliance verified
+- **User guide for assistive technology users created**
 
 ---
 
