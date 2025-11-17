@@ -1,10 +1,10 @@
 package com.musagenius.ocrapp.domain.usecase
 
 import android.graphics.Bitmap
-import com.musagenius.ocrapp.data.ocr.OCRService
 import com.musagenius.ocrapp.domain.model.OCRConfig
 import com.musagenius.ocrapp.domain.model.OCRResult
 import com.musagenius.ocrapp.domain.model.Result
+import com.musagenius.ocrapp.domain.service.OCRService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject

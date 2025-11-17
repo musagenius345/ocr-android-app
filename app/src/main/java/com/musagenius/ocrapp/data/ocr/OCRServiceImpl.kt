@@ -7,6 +7,7 @@ import com.googlecode.tesseract.android.TessBaseAPI
 import com.musagenius.ocrapp.domain.model.OCRConfig
 import com.musagenius.ocrapp.domain.model.OCRResult
 import com.musagenius.ocrapp.domain.model.Result
+import com.musagenius.ocrapp.domain.service.OCRService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -18,14 +19,14 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Service for performing OCR using Tesseract
+ * Implementation of OCR service using Tesseract
  * Thread-safe singleton that serializes all tessBaseAPI access
  */
 @Singleton
-class OCRService @Inject constructor(
+class OCRServiceImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val imagePreprocessor: ImagePreprocessor
-) {
+) : OCRService {
     // Mutex to serialize all access to tessBaseAPI, preventing race conditions
     private val tessMutex = Mutex()
 

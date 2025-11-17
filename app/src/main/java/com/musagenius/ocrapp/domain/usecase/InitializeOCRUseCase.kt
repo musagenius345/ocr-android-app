@@ -1,8 +1,8 @@
 package com.musagenius.ocrapp.domain.usecase
 
-import com.musagenius.ocrapp.data.ocr.OCRService
 import com.musagenius.ocrapp.domain.model.OCRConfig
 import com.musagenius.ocrapp.domain.model.Result
+import com.musagenius.ocrapp.domain.service.OCRService
 import javax.inject.Inject
 
 /**

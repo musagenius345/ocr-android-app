@@ -2,7 +2,8 @@ package com.musagenius.ocrapp.di
 
 import android.content.Context
 import com.musagenius.ocrapp.data.ocr.ImagePreprocessor
-import com.musagenius.ocrapp.data.ocr.OCRService
+import com.musagenius.ocrapp.data.ocr.OCRServiceImpl
+import com.musagenius.ocrapp.domain.service.OCRService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -29,6 +30,6 @@ object OCRModule {
         @ApplicationContext context: Context,
         imagePreprocessor: ImagePreprocessor
     ): OCRService {
-        return OCRService(context, imagePreprocessor)
+        return OCRServiceImpl(context, imagePreprocessor)
     }
 }
