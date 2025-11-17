@@ -96,16 +96,18 @@ Establish the foundational data layer and OCR engine integration that all featur
   - Handle errors gracefully
 - [ ] Implement basic image preprocessing
   - Grayscale conversion
-  - Image scaling for optimal OCR
+  - Image scaling for optimal OCR (max 2000px width/height)
+  - Basic contrast adjustment
 - [ ] Create ProcessImageUseCase
   - Accept bitmap input
   - Return extracted text with confidence score
 - [ ] Test with sample images
 
 **Success Criteria:**
-- Successfully extract text from clear images
-- Processing time < 5 seconds for typical document
+- Successfully extract text from clear, well-lit images (300+ DPI, straight orientation)
+- Processing time < 5-7 seconds for typical document (A4 size, ~2MP image)
 - Handles errors without crashes
+- Note: Advanced preprocessing (adaptive thresholding, deskewing) comes in Phase 3 for harder cases
 
 ##### Milestone 1.3: Hilt Module Configuration (Week 2-3)
 **Objective:** Wire up dependency injection
@@ -788,6 +790,7 @@ Prepare the app for production release on Google Play Store.
 | Memory constraints | High | Medium | Efficient bitmap handling, memory profiling |
 | Camera compatibility issues | Medium | Medium | Test on various devices, fallback to gallery |
 | Large language file downloads | Low | High | Implement resume, show progress, bundle English |
+| Uncontrolled storage growth | High | High | Implement storage quota checks in Phase 2, establish cleanup policies early, compress images, limit tessdata to 3-5 languages initially |
 
 ### Project Risks
 
@@ -797,15 +800,95 @@ Prepare the app for production release on Google Play Store.
 | Timeline delays | Low | Medium | Build buffer into estimates, MVP first |
 | User adoption | Medium | Medium | Focus on UX, beta testing, marketing |
 
+### Storage Management Strategy
+
+**Storage Concerns:**
+- User images can accumulate quickly (2-5 MB per scan)
+- Room database with extracted text (50-500 KB per scan)
+- Tessdata files consume 50+ MB per language
+- Potential for 1 GB+ storage with heavy usage
+
+**Mitigation Plan:**
+- **Phase 2 (Week 4-5):** Implement storage checks before capture
+  - Display available storage to user
+  - Warn when storage < 100 MB
+  - Automatic image compression (JPEG 85% quality)
+- **Phase 4 (Week 10-11):** Add storage management UI
+  - Show storage usage breakdown
+  - Bulk delete old scans
+  - Export and delete workflow
+- **Phase 5 (Week 12-13):** Language data management
+  - Limit installed languages to 5
+  - Delete unused language files
+  - Download on-demand vs. pre-bundling
+- **Ongoing:** Auto-cleanup policies (user-configurable)
+  - Delete scans older than X days (default: 90)
+  - Keep favorites exempt from cleanup
+  - Clear cache on app uninstall
+
 ---
 
 ## Team & Resources
 
+### Team Composition & Timeline Assumptions
+
+**This roadmap assumes:**
+
+#### Solo Developer Scenario (18-20 weeks)
+- **Commitment:** 20-30 hours/week
+- **Skill level:** Mid to senior Android developer
+- **Experience:** Familiar with Kotlin, Compose, Room, basic image processing
+- **Timeline:** 18-20 weeks with aggressive pace
+- **Risk:** High burnout risk, no redundancy
+
+#### Small Team Scenario (12-16 weeks)
+- **Team size:** 2 developers + 1 designer (part-time)
+- **Developer 1 (Lead):** Backend, OCR integration, architecture (20h/week)
+- **Developer 2:** UI/UX implementation, testing (20h/week)
+- **Designer:** UI designs, assets, user flows (5-10h/week)
+- **Timeline:** 12-16 weeks with parallel workstreams
+- **Recommended:** Better for quality and maintainability
+
+#### Sprint Velocity Assumptions
+- **2-week sprints** (recommended)
+- **Velocity:** ~2-3 major features per sprint
+- **Buffer:** 20% contingency (2-4 weeks) for blockers
+- **Weekly standup:** Track progress against roadmap milestones
+
+### Descope Strategy (If Timeline Slips)
+
+**Priority 1 (Must Have for v1.0):**
+- Phase 1: Database + basic OCR
+- Phase 2: Camera capture
+- Phase 3: OCR results screen
+- Phase 4: Basic history list
+- Phase 8: Release preparation
+
+**Priority 2 (Nice to Have, can defer to v1.1):**
+- Advanced image preprocessing
+- Search and filters
+- Language management UI
+- Favorites and tags
+- Settings customization
+
+**Priority 3 (Defer to v1.2+):**
+- Batch processing
+- Advanced analytics
+- Cloud sync preparation
+- All future features
+
+**If timeline slips by >4 weeks:**
+- Release MVP with Phases 1-3 only
+- Manual language selection (pre-bundle English)
+- Simplified history (no search/filters)
+- Target 10-week timeline to first release
+
 ### Required Skills
 - Android development (Kotlin, Jetpack Compose)
 - UI/UX design (Material Design 3)
-- Image processing knowledge
+- Image processing knowledge (basic)
 - Testing expertise
+- Project management / scrum master (if team >1)
 
 ### Tools & Services
 - Android Studio (latest)
@@ -813,6 +896,8 @@ Prepare the app for production release on Google Play Store.
 - Figma (for design)
 - Firebase (for analytics/crashlytics - optional)
 - Play Console
+- Slack/Discord (team communication)
+- Linear/Jira (project tracking - optional)
 
 ---
 
@@ -843,8 +928,20 @@ Prepare the app for production release on Google Play Store.
 
 This roadmap provides a structured approach to building a production-quality OCR application. The phased approach ensures we build a solid foundation before adding advanced features. Regular testing and user feedback will guide iterations.
 
-**Estimated Timeline:** 18-20 weeks to v1.0 launch
+**Estimated Timeline:**
+- **Solo Developer:** 18-20 weeks to v1.0 launch (20-30h/week commitment)
+- **Small Team (2 devs):** 12-16 weeks to v1.0 launch
+- **MVP (Phases 1-3 only):** 10-12 weeks (for aggressive launch)
+- **Buffer:** Include 20% contingency (2-4 weeks) for unexpected blockers
+
 **Post-Launch:** Continuous improvement based on user feedback
+
+**Next Steps:**
+1. Confirm team composition and weekly availability
+2. Adjust timeline based on team size and commitment
+3. Set up project tracking (Linear, Jira, or GitHub Projects)
+4. Begin Phase 1 development with clear milestone deadlines
+5. Schedule weekly check-ins to track progress
 
 ---
 

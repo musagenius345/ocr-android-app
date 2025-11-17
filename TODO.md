@@ -60,6 +60,10 @@ This document tracks all development tasks for the Material Design 3 OCR applica
   - [ ] Show real-time OCR progress
   - [ ] Estimated time remaining
   - [ ] Cancel operation support
+    - [ ] Implement Job cancellation with Coroutines
+    - [ ] Handle cleanup on cancellation (release TessBaseAPI resources)
+    - [ ] Update UI state appropriately on cancellation
+    - [ ] Test cancellation doesn't leave zombie processes
 
 ### 🔴 CameraX Integration
 
@@ -375,6 +379,9 @@ This document tracks all development tasks for the Material Design 3 OCR applica
   - [ ] Export as TXT
   - [ ] Export as PDF (optional)
   - [ ] Share via intent
+  - [ ] Ensure user consent for each export action
+  - [ ] Comply with data privacy requirements (see section: Privacy & Security)
+  - [ ] Add file permission handling for Android 10+
 - [ ] Implement backup/restore (optional)
   - [ ] Export database
   - [ ] Import from backup
@@ -467,4 +474,19 @@ This document tracks all development tasks for the Material Design 3 OCR applica
 
 ---
 
+## Maintenance Policy
+
+This TODO document should be reviewed and updated:
+- **Weekly:** During sprint planning or team check-ins
+- **After milestone completion:** Mark completed tasks, add new discoveries
+- **When blockers occur:** Flag blocked tasks with ⏸️ and document reason
+- **Sprint retrospective:** Remove obsolete tasks, re-prioritize based on learnings
+
+**Document Owner:** Project lead / Scrum master
+**Review Frequency:** Weekly (minimum)
+**Next Review:** End of current sprint
+
+---
+
 **Last Updated:** 2025-11-17
+**Status:** Phase 1 Milestone 1.1 (Database Layer) ✅ Complete
