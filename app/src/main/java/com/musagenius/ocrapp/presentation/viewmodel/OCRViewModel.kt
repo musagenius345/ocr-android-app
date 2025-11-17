@@ -139,14 +139,8 @@ class OCRViewModel @Inject constructor(
                     Log.w(TAG, "Error stopping OCR service after cancellation", ex)
                 }
 
-                _uiState.update {
-                    it.copy(
-                        isProcessing = false,
-                        error = null // Don't show error for user-initiated cancellation
-                    )
-                }
-
                 // Re-throw to properly propagate cancellation
+                // UI state is managed by cancelProcessing() method
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Error during OCR processing", e)

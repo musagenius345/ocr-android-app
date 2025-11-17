@@ -19,6 +19,7 @@ class GetAvailableLanguagesUseCase @Inject constructor(
 ) {
     /**
      * Get list of all available languages with details
+     * Runs on IO dispatcher - do not call from withContext(Dispatchers.IO)
      * @return Result containing list of Language objects
      */
     suspend operator fun invoke(): Result<List<Language>> = withContext(Dispatchers.IO) {
@@ -26,42 +27,51 @@ class GetAvailableLanguagesUseCase @Inject constructor(
             // Get language codes from OCR service
             val languageCodes = ocrService.getAvailableLanguages()
 
-            // Get tessdata directory path
-            val tessdataPath = File(context.getExternalFilesDir(null), "tessdata")
+            // Get tessdata directory path, handling null case
+            val externalFilesDir = context.getExternalFilesDir(null)
+                ?: return@withContext Result.error(
+                    IllegalStateException("External files directory not available"),
+                    "Cannot access tessdata directory"
+                )
+
+            val tessdataPath = File(externalFilesDir, "tessdata")
 
             // Map language codes to Language objects with file size info
             val languages = languageCodes.map { code ->
                 val file = File(tessdataPath, "$code.traineddata")
+                // Cache exists() result to avoid duplicate IO
+                val exists = file.exists()
                 Language(
                     code = code,
                     displayName = Language.getDisplayName(code),
-                    isInstalled = file.exists(),
-                    fileSize = if (file.exists()) file.length() else 0L
+                    isInstalled = exists,
+                    fileSize = if (exists) file.length() else 0L
                 )
             }.sortedBy { it.displayName }
 
             Result.success(languages)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.error(e, "Failed to get available languages: ${e.message}")
         }
     }
 
     /**
      * Get only installed languages
+     * Delegates to invoke() which already runs on IO dispatcher
      */
-    suspend fun getInstalled(): Result<List<Language>> = withContext(Dispatchers.IO) {
-        try {
+    suspend fun getInstalled(): Result<List<Language>> {
+        return try {
             val allLanguagesResult = invoke()
             allLanguagesResult.fold(
                 onSuccess = { languages ->
                     Result.success(languages.filter { it.isInstalled })
                 },
                 onFailure = { error ->
-                    Result.failure(error)
+                    Result.error(error, "Failed to get installed languages")
                 }
             )
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.error(e, "Failed to get installed languages: ${e.message}")
         }
     }
 }

@@ -78,10 +78,17 @@ class ImageCompressor @Inject constructor(
         uri: Uri,
         maxSize: Int = MAX_IMAGE_SIZE
     ): Bitmap? = withContext(Dispatchers.IO) {
-        loadSampledBitmap(uri, maxSize)?.let { bitmap ->
-            // Fix orientation based on EXIF data
-            fixOrientation(uri, bitmap)
+        val originalBitmap = loadSampledBitmap(uri, maxSize) ?: return@withContext null
+
+        // Fix orientation based on EXIF data
+        val orientedBitmap = fixOrientation(uri, originalBitmap)
+
+        // Recycle original bitmap if fixOrientation created a new one
+        if (orientedBitmap != originalBitmap && !originalBitmap.isRecycled) {
+            originalBitmap.recycle()
         }
+
+        orientedBitmap
     }
 
     /**

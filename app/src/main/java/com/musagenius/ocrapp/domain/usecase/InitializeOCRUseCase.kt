@@ -3,6 +3,8 @@ package com.musagenius.ocrapp.domain.usecase
 import com.musagenius.ocrapp.domain.model.OCRConfig
 import com.musagenius.ocrapp.domain.model.Result
 import com.musagenius.ocrapp.domain.service.OCRService
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
@@ -22,9 +24,10 @@ class InitializeOCRUseCase @Inject constructor(
 
     /**
      * Check if a language is available
+     * Runs on IO dispatcher to avoid blocking main thread during filesystem checks
      */
-    fun isLanguageAvailable(language: String): Boolean {
-        return ocrService.isLanguageAvailable(language)
+    suspend fun isLanguageAvailable(language: String): Boolean = withContext(Dispatchers.IO) {
+        ocrService.isLanguageAvailable(language)
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.musagenius.ocrapp.presentation.ui.camera
 
 import android.net.Uri
+import com.musagenius.ocrapp.data.camera.DocumentEdgeDetector
 
 /**
  * UI state for the camera screen
@@ -17,6 +18,10 @@ data class CameraUiState(
     val maxZoomRatio: Float = 1f,
     val cameraFacing: CameraFacing = CameraFacing.BACK,
     val showGridOverlay: Boolean = false,
+    val showDocumentOverlay: Boolean = true,
+    val documentCorners: DocumentEdgeDetector.DocumentCorners? = null,
+    val previewWidth: Float = 0f,
+    val previewHeight: Float = 0f,
     val exposureCompensation: Int = 0,
     val minExposure: Int = 0,
     val maxExposure: Int = 0
@@ -90,4 +95,7 @@ sealed class CameraEvent {
     data class SetExposure(val compensation: Int) : CameraEvent()
     data object FlipCamera : CameraEvent()
     data object ToggleGridOverlay : CameraEvent()
+    data object ToggleDocumentOverlay : CameraEvent()
+    data class UpdateDocumentCorners(val corners: DocumentEdgeDetector.DocumentCorners?) : CameraEvent()
+    data class UpdatePreviewSize(val width: Float, val height: Float) : CameraEvent()
 }

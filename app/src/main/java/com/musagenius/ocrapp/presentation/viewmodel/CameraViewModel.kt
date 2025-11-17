@@ -53,6 +53,9 @@ class CameraViewModel @Inject constructor(
             is CameraEvent.SetExposure -> setExposure(event.compensation)
             is CameraEvent.FlipCamera -> flipCamera()
             is CameraEvent.ToggleGridOverlay -> toggleGridOverlay()
+            is CameraEvent.ToggleDocumentOverlay -> toggleDocumentOverlay()
+            is CameraEvent.UpdateDocumentCorners -> updateDocumentCorners(event.corners)
+            is CameraEvent.UpdatePreviewSize -> updatePreviewSize(event.width, event.height)
         }
     }
 
@@ -240,6 +243,29 @@ class CameraViewModel @Inject constructor(
     private fun toggleGridOverlay() {
         _uiState.update { it.copy(showGridOverlay = !it.showGridOverlay) }
         Log.d(TAG, "Grid overlay: ${_uiState.value.showGridOverlay}")
+    }
+
+    /**
+     * Toggle document edge detection overlay
+     */
+    private fun toggleDocumentOverlay() {
+        _uiState.update { it.copy(showDocumentOverlay = !it.showDocumentOverlay) }
+        Log.d(TAG, "Document overlay: ${_uiState.value.showDocumentOverlay}")
+    }
+
+    /**
+     * Update detected document corners
+     */
+    private fun updateDocumentCorners(corners: DocumentEdgeDetector.DocumentCorners?) {
+        _uiState.update { it.copy(documentCorners = corners) }
+    }
+
+    /**
+     * Update preview size for overlay calculations
+     */
+    private fun updatePreviewSize(width: Float, height: Float) {
+        _uiState.update { it.copy(previewWidth = width, previewHeight = height) }
+        Log.d(TAG, "Preview size updated: ${width}x$height")
     }
 
     /**

@@ -28,16 +28,21 @@ import kotlin.coroutines.suspendCoroutine
  */
 @ActivityRetainedScoped
 class CameraManager @Inject constructor(
-    private val context: Context
+    private val context: Context,
+    private val documentEdgeDetector: DocumentEdgeDetector
 ) {
     private var cameraProvider: ProcessCameraProvider? = null
     private var camera: Camera? = null
     private var preview: Preview? = null
     private var imageCapture: ImageCapture? = null
+    private var imageAnalysis: ImageAnalysis? = null
     private val executor: Executor = ContextCompat.getMainExecutor(context)
     private var currentCameraFacing: CameraFacing = CameraFacing.BACK
     private var lifecycleOwner: LifecycleOwner? = null
     private var previewView: PreviewView? = null
+
+    // Callback for edge detection results
+    private var edgeDetectionCallback: ((DocumentEdgeDetector.DocumentCorners?) -> Unit)? = null
 
     companion object {
         private const val TAG = "CameraManager"

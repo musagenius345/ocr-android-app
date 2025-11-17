@@ -11,6 +11,7 @@ import com.musagenius.ocrapp.domain.model.ProcessingStage
 import com.musagenius.ocrapp.domain.model.Result
 import com.musagenius.ocrapp.domain.service.OCRService
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -181,7 +182,7 @@ class OCRServiceImpl @Inject constructor(
                     // Initialize if needed
                     val initResult = initializeInternal(config)
                     if (initResult is Result.Error) {
-                        emit(Result.failure(initResult.exception))
+                        emit(Result.success(OCRProgress.failed(System.currentTimeMillis() - startTime)))
                         return@withContext
                     }
 
@@ -256,11 +257,15 @@ class OCRServiceImpl @Inject constructor(
                     Log.d(TAG, "OCR completed in ${processingTime}ms with confidence: ${(confidence * 100).toInt()}%")
                 }
             }
+        } catch (e: CancellationException) {
+            // Rethrow cancellation to allow proper coroutine cancellation
+            Log.d(TAG, "OCR processing cancelled")
+            throw e
         } catch (e: Exception) {
+            // Handle other exceptions by emitting failed progress state
             Log.e(TAG, "Error during OCR with progress", e)
             val elapsedMs = System.currentTimeMillis() - startTime
             emit(Result.success(OCRProgress.failed(elapsedMs)))
-            emit(Result.failure(e))
         }
     }
 

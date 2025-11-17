@@ -27,7 +27,8 @@ interface OCRService {
 
     /**
      * Perform OCR on the given bitmap with progress tracking
-     * @return Flow emitting progress updates followed by final result
+     * Emits OCRProgress states during processing, ending with COMPLETED progress state
+     * @return Flow emitting OCRProgress updates (no separate result emission)
      */
     fun recognizeTextWithProgress(
         bitmap: Bitmap,
