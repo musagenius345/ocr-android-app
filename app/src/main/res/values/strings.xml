@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OCR App</string>
+
+    <!-- Navigation -->
+    <string name="nav_camera">Camera</string>
+    <string name="nav_history">History</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Camera Screen -->
+    <string name="camera_permission_required">Camera permission is required to scan documents</string>
+    <string name="capture_button">Capture</string>
+    <string name="flash_on">Flash On</string>
+    <string name="flash_off">Flash Off</string>
+
+    <!-- OCR Processing -->
+    <string name="processing_image">Processing image...</string>
+    <string name="extracting_text">Extracting text...</string>
+    <string name="ocr_success">Text extracted successfully</string>
+    <string name="ocr_failed">Failed to extract text</string>
+    <string name="no_text_found">No text found in image</string>
+
+    <!-- History Screen -->
+    <string name="history_empty">No scanned documents yet</string>
+    <string name="delete_item">Delete</string>
+    <string name="share_text">Share</string>
+    <string name="copy_text">Copy</string>
+
+    <!-- Settings -->
+    <string name="settings_language">OCR Language</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_system">System Default</string>
+
+    <!-- Common -->
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="retry">Retry</string>
+    <string name="close">Close</string>
+    <string name="save">Save</string>
+</resources>
