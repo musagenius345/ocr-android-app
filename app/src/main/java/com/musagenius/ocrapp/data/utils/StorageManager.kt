@@ -77,6 +77,7 @@ class StorageManager @Inject constructor(
         return try {
             getTotalStorageMB() - getAvailableStorageMB()
         } catch (e: Exception) {
+            Log.e(TAG, "Error getting used storage", e)
             0L
         }
     }
