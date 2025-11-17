@@ -30,6 +30,7 @@ import com.musagenius.ocrapp.presentation.ui.components.GridOverlay
 import com.musagenius.ocrapp.presentation.ui.components.ShutterAnimation
 import com.musagenius.ocrapp.presentation.ui.components.rememberHapticFeedback
 import com.musagenius.ocrapp.presentation.viewmodel.CameraViewModel
+import java.util.Locale
 
 /**
  * Camera screen for capturing images
@@ -507,7 +508,7 @@ fun CameraTopControls(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = String.format("%.1fx", zoomRatio),
+                        text = String.format(Locale.US, "%.1fx", zoomRatio),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurface
                     )
