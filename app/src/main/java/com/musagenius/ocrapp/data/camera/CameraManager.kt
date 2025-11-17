@@ -8,6 +8,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.musagenius.ocrapp.presentation.ui.camera.CameraFacing
 import com.musagenius.ocrapp.presentation.ui.camera.FlashMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -33,6 +34,9 @@ class CameraManager @Inject constructor(
     private var preview: Preview? = null
     private var imageCapture: ImageCapture? = null
     private val executor: Executor = ContextCompat.getMainExecutor(context)
+    private var currentCameraFacing: CameraFacing = CameraFacing.BACK
+    private var lifecycleOwner: LifecycleOwner? = null
+    private var previewView: PreviewView? = null
 
     companion object {
         private const val TAG = "CameraManager"
@@ -45,9 +49,15 @@ class CameraManager @Inject constructor(
     suspend fun startCamera(
         lifecycleOwner: LifecycleOwner,
         previewView: PreviewView,
-        flashMode: FlashMode = FlashMode.OFF
+        flashMode: FlashMode = FlashMode.OFF,
+        cameraFacing: CameraFacing = CameraFacing.BACK
     ) = withContext(Dispatchers.Main) {
         try {
+            // Save references for camera operations
+            this@CameraManager.lifecycleOwner = lifecycleOwner
+            this@CameraManager.previewView = previewView
+            this@CameraManager.currentCameraFacing = cameraFacing
+
             cameraProvider = getCameraProvider()
 
             // Unbind all use cases before rebinding
@@ -66,8 +76,11 @@ class CameraManager @Inject constructor(
                 .setFlashMode(flashMode.toImageCaptureFlashMode())
                 .build()
 
-            // Select back camera as default
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+            // Select camera based on facing
+            val cameraSelector = when (cameraFacing) {
+                CameraFacing.BACK -> CameraSelector.DEFAULT_BACK_CAMERA
+                CameraFacing.FRONT -> CameraSelector.DEFAULT_FRONT_CAMERA
+            }
 
             // Bind use cases to camera
             camera = cameraProvider?.bindToLifecycle(
@@ -77,7 +90,7 @@ class CameraManager @Inject constructor(
                 imageCapture
             )
 
-            Log.d(TAG, "Camera started successfully")
+            Log.d(TAG, "Camera started successfully with ${cameraFacing.getDisplayName()}")
         } catch (e: Exception) {
             Log.e(TAG, "Error starting camera", e)
             throw e
@@ -126,6 +139,74 @@ class CameraManager @Inject constructor(
     fun setFlashMode(flashMode: FlashMode) {
         imageCapture?.flashMode = flashMode.toImageCaptureFlashMode()
     }
+
+    /**
+     * Set zoom ratio
+     * @param ratio Zoom ratio (1.0 = no zoom)
+     */
+    fun setZoomRatio(ratio: Float) {
+        camera?.cameraControl?.setZoomRatio(ratio)
+        Log.d(TAG, "Zoom ratio set to: $ratio")
+    }
+
+    /**
+     * Get zoom state
+     */
+    fun getZoomState() = camera?.cameraInfo?.zoomState
+
+    /**
+     * Focus on a point
+     * @param x X coordinate (0-1)
+     * @param y Y coordinate (0-1)
+     * @param width Preview width
+     * @param height Preview height
+     */
+    fun focusOnPoint(x: Float, y: Float, width: Int, height: Int) {
+        val factory = previewView?.meteringPointFactory ?: return
+        val point = factory.createPoint(x, y)
+        val action = FocusMeteringAction.Builder(point)
+            .setAutoCancelDuration(3, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+
+        camera?.cameraControl?.startFocusAndMetering(action)
+        Log.d(TAG, "Focus requested at: ($x, $y)")
+    }
+
+    /**
+     * Set exposure compensation
+     * @param compensation Exposure compensation index
+     */
+    fun setExposureCompensation(compensation: Int) {
+        camera?.cameraControl?.setExposureCompensationIndex(compensation)
+        Log.d(TAG, "Exposure compensation set to: $compensation")
+    }
+
+    /**
+     * Get exposure state
+     */
+    fun getExposureState() = camera?.cameraInfo?.exposureState
+
+    /**
+     * Flip camera (front/back)
+     */
+    suspend fun flipCamera() = withContext(Dispatchers.Main) {
+        val newFacing = currentCameraFacing.flip()
+        val owner = lifecycleOwner ?: return@withContext
+        val view = previewView ?: return@withContext
+
+        startCamera(
+            lifecycleOwner = owner,
+            previewView = view,
+            cameraFacing = newFacing
+        )
+
+        Log.d(TAG, "Camera flipped to: ${newFacing.getDisplayName()}")
+    }
+
+    /**
+     * Get current camera facing
+     */
+    fun getCurrentCameraFacing(): CameraFacing = currentCameraFacing
 
     /**
      * Check if camera is available

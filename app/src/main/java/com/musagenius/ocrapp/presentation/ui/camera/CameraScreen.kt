@@ -6,6 +6,8 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -13,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.semantics.contentDescription
@@ -23,6 +26,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import com.musagenius.ocrapp.presentation.ui.components.GridOverlay
 import com.musagenius.ocrapp.presentation.ui.components.ShutterAnimation
 import com.musagenius.ocrapp.presentation.ui.components.rememberHapticFeedback
 import com.musagenius.ocrapp.presentation.viewmodel.CameraViewModel
@@ -159,33 +163,78 @@ fun CameraScreen(
                         }
                     }
 
-                    CameraPreview(
-                        modifier = Modifier.fillMaxSize(),
-                        onPreviewViewCreated = { previewView = it }
-                    )
-
-                    // Shutter animation overlay
-                    ShutterAnimation(
-                        trigger = showShutterAnimation,
-                        onAnimationComplete = { showShutterAnimation = false }
-                    )
-
-                    // Camera controls overlay
-                    CameraControls(
+                    Box(
                         modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 32.dp),
-                        isProcessing = uiState.isProcessing,
-                        onCaptureClick = {
-                            haptic.performCaptureFeedback()
-                            showShutterAnimation = true
-                            viewModel.onEvent(CameraEvent.CaptureImage)
-                        },
-                        onGalleryClick = {
-                            haptic.performLightTap()
-                            galleryLauncher.launch("image/*")
+                            .fillMaxSize()
+                            .pointerInput(Unit) {
+                                // Pinch-to-zoom gesture
+                                detectTransformGestures { _, _, zoom, _ ->
+                                    val newZoom = uiState.zoomRatio * zoom
+                                    viewModel.onEvent(CameraEvent.SetZoom(newZoom))
+                                }
+                            }
+                            .pointerInput(Unit) {
+                                // Tap-to-focus gesture
+                                detectTapGestures { offset ->
+                                    val x = offset.x / size.width
+                                    val y = offset.y / size.height
+                                    viewModel.onEvent(CameraEvent.TapToFocus(x, y))
+                                    haptic.performLightTap()
+                                }
+                            }
+                    ) {
+                        CameraPreview(
+                            modifier = Modifier.fillMaxSize(),
+                            onPreviewViewCreated = { previewView = it }
+                        )
+
+                        // Grid overlay
+                        if (uiState.showGridOverlay) {
+                            GridOverlay()
                         }
-                    )
+
+                        // Shutter animation overlay
+                        ShutterAnimation(
+                            trigger = showShutterAnimation,
+                            onAnimationComplete = { showShutterAnimation = false }
+                        )
+
+                        // Top controls (zoom, grid, flip)
+                        CameraTopControls(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(16.dp),
+                            zoomRatio = uiState.zoomRatio,
+                            showGridOverlay = uiState.showGridOverlay,
+                            cameraFacing = uiState.cameraFacing,
+                            onZoomChange = { viewModel.onEvent(CameraEvent.SetZoom(it)) },
+                            onToggleGrid = {
+                                haptic.performLightTap()
+                                viewModel.onEvent(CameraEvent.ToggleGridOverlay)
+                            },
+                            onFlipCamera = {
+                                haptic.performLightTap()
+                                viewModel.onEvent(CameraEvent.FlipCamera)
+                            }
+                        )
+
+                        // Camera controls overlay
+                        CameraControls(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 32.dp),
+                            isProcessing = uiState.isProcessing,
+                            onCaptureClick = {
+                                haptic.performCaptureFeedback()
+                                showShutterAnimation = true
+                                viewModel.onEvent(CameraEvent.CaptureImage)
+                            },
+                            onGalleryClick = {
+                                haptic.performLightTap()
+                                galleryLauncher.launch("image/*")
+                            }
+                        )
+                    }
                 }
             }
 
@@ -377,6 +426,93 @@ fun CameraPermissionRequired(
                 }
         ) {
             Text("Pick from Gallery")
+        }
+    }
+}
+
+@Composable
+fun CameraTopControls(
+    modifier: Modifier = Modifier,
+    zoomRatio: Float,
+    showGridOverlay: Boolean,
+    cameraFacing: CameraFacing,
+    onZoomChange: (Float) -> Unit,
+    onToggleGrid: () -> Unit,
+    onFlipCamera: () -> Unit
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Camera flip button
+        FilledIconButton(
+            onClick = onFlipCamera,
+            modifier = Modifier
+                .size(48.dp)
+                .semantics {
+                    contentDescription = "Flip camera to ${if (cameraFacing == CameraFacing.BACK) "front" else "back"}"
+                },
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Default.FlipCameraAndroid,
+                contentDescription = "Flip Camera"
+            )
+        }
+
+        // Grid overlay toggle button
+        FilledIconButton(
+            onClick = onToggleGrid,
+            modifier = Modifier
+                .size(48.dp)
+                .semantics {
+                    contentDescription = if (showGridOverlay) "Hide grid overlay" else "Show grid overlay"
+                },
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = if (showGridOverlay) {
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
+                } else {
+                    MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                }
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Default.GridOn,
+                contentDescription = "Grid",
+                tint = if (showGridOverlay) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
+            )
+        }
+
+        // Zoom indicator and slider
+        if (zoomRatio > 1.01f) {
+            Surface(
+                modifier = Modifier
+                    .width(48.dp)
+                    .height(120.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = String.format("%.1fx", zoomRatio),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
         }
     }
 }

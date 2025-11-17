@@ -48,6 +48,11 @@ class CameraViewModel @Inject constructor(
                 // Will be handled by the UI layer directly
             }
             is CameraEvent.DismissError -> dismissError()
+            is CameraEvent.SetZoom -> setZoom(event.ratio)
+            is CameraEvent.TapToFocus -> handleTapToFocus(event.x, event.y)
+            is CameraEvent.SetExposure -> setExposure(event.compensation)
+            is CameraEvent.FlipCamera -> flipCamera()
+            is CameraEvent.ToggleGridOverlay -> toggleGridOverlay()
         }
     }
 
@@ -65,8 +70,12 @@ class CameraViewModel @Inject constructor(
                 cameraManager.startCamera(
                     lifecycleOwner = lifecycleOwner,
                     previewView = previewView,
-                    flashMode = _uiState.value.flashMode
+                    flashMode = _uiState.value.flashMode,
+                    cameraFacing = _uiState.value.cameraFacing
                 )
+
+                // Update camera capabilities after starting
+                updateCameraCapabilities()
 
                 _uiState.update { it.copy(isLoading = false) }
                 Log.d(TAG, "Camera started successfully")
@@ -157,6 +166,105 @@ class CameraViewModel @Inject constructor(
         _uiState.update { it.copy(flashMode = newFlashMode) }
         cameraManager.setFlashMode(newFlashMode)
         Log.d(TAG, "Flash mode changed to: $newFlashMode")
+    }
+
+    /**
+     * Set zoom ratio
+     */
+    private fun setZoom(ratio: Float) {
+        val clampedRatio = ratio.coerceIn(_uiState.value.minZoomRatio, _uiState.value.maxZoomRatio)
+        _uiState.update { it.copy(zoomRatio = clampedRatio) }
+        cameraManager.setZoomRatio(clampedRatio)
+    }
+
+    /**
+     * Handle tap-to-focus
+     */
+    private fun handleTapToFocus(x: Float, y: Float) {
+        // The CameraManager will handle the actual focus operation
+        // x and y are normalized coordinates (0-1)
+        viewModelScope.launch {
+            try {
+                cameraManager.focusOnPoint(x, y, 1, 1)
+                Log.d(TAG, "Focus triggered at: ($x, $y)")
+            } catch (e: Exception) {
+                Log.e(TAG, "Focus failed", e)
+            }
+        }
+    }
+
+    /**
+     * Set exposure compensation
+     */
+    private fun setExposure(compensation: Int) {
+        val clampedCompensation = compensation.coerceIn(_uiState.value.minExposure, _uiState.value.maxExposure)
+        _uiState.update { it.copy(exposureCompensation = clampedCompensation) }
+        cameraManager.setExposureCompensation(clampedCompensation)
+    }
+
+    /**
+     * Flip camera (front/back)
+     */
+    private fun flipCamera() {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isLoading = true) }
+                cameraManager.flipCamera()
+                val newFacing = cameraManager.getCurrentCameraFacing()
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        cameraFacing = newFacing
+                    )
+                }
+
+                // Update zoom and exposure ranges after camera flip
+                updateCameraCapabilities()
+
+                Log.d(TAG, "Camera flipped to: ${newFacing.getDisplayName()}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to flip camera", e)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "Failed to flip camera: ${e.localizedMessage}"
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Toggle grid overlay
+     */
+    private fun toggleGridOverlay() {
+        _uiState.update { it.copy(showGridOverlay = !it.showGridOverlay) }
+        Log.d(TAG, "Grid overlay: ${_uiState.value.showGridOverlay}")
+    }
+
+    /**
+     * Update camera capabilities (zoom range, exposure range)
+     */
+    private fun updateCameraCapabilities() {
+        cameraManager.getZoomState()?.value?.let { zoomState ->
+            _uiState.update {
+                it.copy(
+                    minZoomRatio = zoomState.minZoomRatio,
+                    maxZoomRatio = zoomState.maxZoomRatio,
+                    zoomRatio = zoomState.zoomRatio
+                )
+            }
+        }
+
+        cameraManager.getExposureState()?.value?.let { exposureState ->
+            _uiState.update {
+                it.copy(
+                    minExposure = exposureState.exposureCompensationRange.lower,
+                    maxExposure = exposureState.exposureCompensationRange.upper,
+                    exposureCompensation = exposureState.exposureCompensationIndex
+                )
+            }
+        }
     }
 
     /**
