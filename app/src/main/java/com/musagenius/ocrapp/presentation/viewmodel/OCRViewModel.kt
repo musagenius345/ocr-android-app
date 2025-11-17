@@ -11,6 +11,7 @@ import com.musagenius.ocrapp.domain.usecase.ProcessImageUseCase
 import com.musagenius.ocrapp.presentation.ui.ocr.OCREvent
 import com.musagenius.ocrapp.presentation.ui.ocr.OCRUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,6 +31,9 @@ class OCRViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(OCRUiState())
     val uiState: StateFlow<OCRUiState> = _uiState.asStateFlow()
+
+    // Track current OCR job to prevent concurrent processing
+    private var currentJob: Job? = null
 
     companion object {
         private const val TAG = "OCRViewModel"
@@ -62,7 +66,10 @@ class OCRViewModel @Inject constructor(
      * Process image with OCR
      */
     private fun processImage(imageUri: Uri, language: String) {
-        viewModelScope.launch {
+        // Cancel any ongoing OCR job to prevent concurrent processing
+        currentJob?.cancel()
+
+        currentJob = viewModelScope.launch {
             try {
                 _uiState.update {
                     it.copy(
