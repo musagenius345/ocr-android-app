@@ -74,7 +74,13 @@ fun OCRAppNavigation() {
             )
         ) { backStackEntry ->
             val encodedUriString = backStackEntry.arguments?.getString("imageUri")
-            val decodedUriString = encodedUriString?.let { Uri.decode(it) }
+            if (encodedUriString == null) {
+                // Missing imageUri argument - fail fast and navigate back
+                navController.popBackStack()
+                return@composable
+            }
+
+            val decodedUriString = Uri.decode(encodedUriString)
             val imageUri = Uri.parse(decodedUriString)
 
             OCRResultScreen(
