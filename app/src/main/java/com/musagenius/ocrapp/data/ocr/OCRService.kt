@@ -26,7 +26,9 @@ class OCRService @Inject constructor(
     private var tessBaseAPI: TessBaseAPI? = null
     private var currentLanguage: String = ""
     private val tessdataPath: String by lazy {
-        context.getExternalFilesDir(null)?.absolutePath + "/tessdata/"
+        // Use external storage if available, fallback to internal storage
+        val baseDir = context.getExternalFilesDir(null) ?: context.filesDir
+        File(baseDir, "tessdata").absolutePath + File.separator
     }
 
     companion object {
@@ -110,8 +112,8 @@ class OCRService @Inject constructor(
             // Set image for recognition
             tessBaseAPI?.setImage(processedBitmap)
 
-            // Get text
-            val text = tessBaseAPI?.utF8Text ?: ""
+            // Get text using the correct method call
+            val text = tessBaseAPI?.getUTF8Text().orEmpty()
 
             // Get confidence (0-100, convert to 0-1)
             val confidence = (tessBaseAPI?.meanConfidence() ?: 0) / 100f
