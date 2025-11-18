@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to create GitHub issues for Tesseract 4 Migration
+# Script to create GitHub issues for Tesseract 5 Migration
 # Requires: gh CLI (GitHub CLI) installed and authenticated
 # Usage: ./create-project-issues.sh
 
@@ -33,7 +33,7 @@ echo ""
 
 # Create milestone if it doesn't exist
 echo "📌 Creating milestone: $MILESTONE"
-gh api repos/$REPO/milestones -f title="$MILESTONE" -f description="Migration from Tesseract 3 to Tesseract 4" 2>/dev/null || echo "Milestone may already exist"
+gh api repos/$REPO/milestones -f title="$MILESTONE" -f description="Migration from Tesseract 3 to Tesseract 5" 2>/dev/null || echo "Milestone may already exist"
 echo ""
 
 # Function to create issue
@@ -685,7 +685,7 @@ Final release to production.
 "Phase 8"
 
 echo ""
-echo "✅ Done! Created issues for Tesseract 4 Migration"
+echo "✅ Done! Created issues for Tesseract 5 Migration"
 echo ""
 echo "📊 Summary:"
 echo "   - Created ~30 key issues (sample - full list has 82 tasks)"
