@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -14,7 +15,9 @@ import com.musagenius.ocrapp.domain.model.ImageQuality
 import com.musagenius.ocrapp.domain.model.UserPreferences
 import com.musagenius.ocrapp.domain.repository.PreferencesRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -40,24 +43,36 @@ class PreferencesRepositoryImpl @Inject constructor(
     }
 
     override fun getUserPreferences(): Flow<UserPreferences> {
-        return context.dataStore.data.map { preferences ->
-            UserPreferences(
-                theme = preferences[PreferencesKeys.THEME]?.let {
-                    AppTheme.valueOf(it)
-                } ?: AppTheme.SYSTEM,
-                useDynamicColor = preferences[PreferencesKeys.USE_DYNAMIC_COLOR] ?: true,
-                defaultCamera = preferences[PreferencesKeys.DEFAULT_CAMERA]?.let {
-                    DefaultCamera.valueOf(it)
-                } ?: DefaultCamera.BACK,
-                imageQuality = preferences[PreferencesKeys.IMAGE_QUALITY]?.let {
-                    ImageQuality.valueOf(it)
-                } ?: ImageQuality.HIGH,
-                autoFocus = preferences[PreferencesKeys.AUTO_FOCUS] ?: true,
-                autoSaveToHistory = preferences[PreferencesKeys.AUTO_SAVE_TO_HISTORY] ?: true,
-                autoDeleteOldScans = preferences[PreferencesKeys.AUTO_DELETE_OLD_SCANS] ?: false,
-                autoDeleteDays = preferences[PreferencesKeys.AUTO_DELETE_DAYS] ?: 90
-            )
-        }
+        return context.dataStore.data
+            .catch { exception ->
+                // Handle DataStore IO failures by emitting default preferences
+                if (exception is IOException) {
+                    emit(emptyPreferences())
+                } else {
+                    throw exception
+                }
+            }
+            .map { preferences ->
+                UserPreferences(
+                    theme = preferences[PreferencesKeys.THEME]?.let { value ->
+                        // Safe enum parsing - returns null if invalid
+                        runCatching { AppTheme.valueOf(value) }.getOrNull()
+                    } ?: AppTheme.SYSTEM,
+                    useDynamicColor = preferences[PreferencesKeys.USE_DYNAMIC_COLOR] ?: true,
+                    defaultCamera = preferences[PreferencesKeys.DEFAULT_CAMERA]?.let { value ->
+                        // Safe enum parsing - returns null if invalid
+                        runCatching { DefaultCamera.valueOf(value) }.getOrNull()
+                    } ?: DefaultCamera.BACK,
+                    imageQuality = preferences[PreferencesKeys.IMAGE_QUALITY]?.let { value ->
+                        // Safe enum parsing - returns null if invalid
+                        runCatching { ImageQuality.valueOf(value) }.getOrNull()
+                    } ?: ImageQuality.HIGH,
+                    autoFocus = preferences[PreferencesKeys.AUTO_FOCUS] ?: true,
+                    autoSaveToHistory = preferences[PreferencesKeys.AUTO_SAVE_TO_HISTORY] ?: true,
+                    autoDeleteOldScans = preferences[PreferencesKeys.AUTO_DELETE_OLD_SCANS] ?: false,
+                    autoDeleteDays = preferences[PreferencesKeys.AUTO_DELETE_DAYS] ?: 90
+                )
+            }
     }
 
     override suspend fun updateTheme(theme: AppTheme) {
