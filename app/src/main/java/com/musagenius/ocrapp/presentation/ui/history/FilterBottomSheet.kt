@@ -55,10 +55,11 @@ fun FilterBottomSheet(
     onDismiss: () -> Unit,
     sheetState: SheetState = androidx.compose.material3.rememberModalBottomSheetState()
 ) {
-    var selectedLanguage by remember { mutableStateOf(currentFilters.language) }
-    var selectedDateRange by remember { mutableStateOf(DateRangeOption.fromDateRange(currentFilters.dateRange)) }
-    var minConfidence by remember { mutableFloatStateOf(currentFilters.minConfidence ?: 0f) }
-    var favoritesOnly by remember { mutableStateOf(currentFilters.favoritesOnly) }
+    // Use remember with currentFilters as key to reset when filters change
+    var selectedLanguage by remember(currentFilters) { mutableStateOf(currentFilters.language) }
+    var selectedDateRange by remember(currentFilters) { mutableStateOf(DateRangeOption.fromDateRange(currentFilters.dateRange)) }
+    var minConfidence by remember(currentFilters) { mutableFloatStateOf(currentFilters.minConfidence ?: 0f) }
+    var favoritesOnly by remember(currentFilters) { mutableStateOf(currentFilters.favoritesOnly) }
     var showLanguageDropdown by remember { mutableStateOf(false) }
 
     ModalBottomSheet(

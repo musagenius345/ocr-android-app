@@ -25,7 +25,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.musagenius.ocrapp.domain.model.SortBy
 import com.musagenius.ocrapp.domain.model.getAllSortOptions
-import com.musagenius.ocrapp.domain.model.getDisplayName
+
+/**
+ * Get display name for sort option (UI layer)
+ */
+private fun SortBy.getDisplayName(): String {
+    return when (this) {
+        SortBy.DATE_DESC -> "Date (Newest First)"
+        SortBy.DATE_ASC -> "Date (Oldest First)"
+        SortBy.TITLE_ASC -> "Title (A-Z)"
+        SortBy.TITLE_DESC -> "Title (Z-A)"
+        SortBy.CONFIDENCE_DESC -> "Confidence (High to Low)"
+        SortBy.CONFIDENCE_ASC -> "Confidence (Low to High)"
+    }
+}
 
 /**
  * Dialog for selecting sort order

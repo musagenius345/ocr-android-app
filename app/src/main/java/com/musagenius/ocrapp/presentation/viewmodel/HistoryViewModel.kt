@@ -40,6 +40,7 @@ class HistoryViewModel @Inject constructor(
     private val _state = MutableStateFlow(HistoryState())
     val state: StateFlow<HistoryState> = _state.asStateFlow()
 
+    private var loadScansJob: Job? = null
     private var searchJob: Job? = null
     private var recentlyDeletedScan: ScanResult? = null
 
@@ -51,7 +52,10 @@ class HistoryViewModel @Inject constructor(
      * Load all scans from the repository
      */
     fun loadScans() {
-        viewModelScope.launch {
+        // Cancel any existing load job to prevent accumulating collectors
+        loadScansJob?.cancel()
+
+        loadScansJob = viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
 
             getAllScansUseCase().collect { result ->
@@ -111,9 +115,36 @@ class HistoryViewModel @Inject constructor(
             searchScansUseCase(query).collect { result ->
                 when (result) {
                     is Result.Success -> {
+                        val currentState = _state.value
+                        var filteredScans = result.data
+
+                        // Apply active filters in memory
+                        val filters = currentState.filterOptions
+                        if (filters.language != null) {
+                            filteredScans = filteredScans.filter { it.language == filters.language }
+                        }
+                        if (filters.dateRange != null) {
+                            filteredScans = filteredScans.filter {
+                                it.timestamp.time in filters.dateRange.startDate..filters.dateRange.endDate
+                            }
+                        }
+                        if (filters.minConfidence != null) {
+                            filteredScans = filteredScans.filter { it.confidenceScore >= filters.minConfidence }
+                        }
+                        if (filters.favoritesOnly) {
+                            filteredScans = filteredScans.filter { it.isFavorite }
+                        }
+
+                        // Apply sorting
+                        filteredScans = applySorting(filteredScans, currentState.sortBy)
+
+                        // Extract unique languages for filter options
+                        val languages = result.data.map { it.language }.distinct().sorted()
+
                         _state.update {
                             it.copy(
-                                scans = result.data,
+                                scans = filteredScans,
+                                availableLanguages = languages,
                                 isLoading = false,
                                 error = null
                             )
@@ -261,25 +292,31 @@ class HistoryViewModel @Inject constructor(
      * Load scans with applied filters
      */
     private fun loadFilteredScans() {
-        viewModelScope.launch {
+        // Cancel any existing load job to prevent accumulating collectors
+        loadScansJob?.cancel()
+
+        loadScansJob = viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
 
             val currentState = _state.value
             val filters = currentState.filterOptions
 
-            // Determine which flow to use based on filters
-            val scansFlow = when {
-                filters.language != null -> getScansByLanguageUseCase(filters.language)
-                filters.dateRange != null -> getScansByDateRangeUseCase(filters.dateRange)
-                else -> getAllScansUseCase()
-            }
-
-            scansFlow.collect { result ->
+            // Always get all scans and apply ALL filters in memory
+            // This ensures multiple filters can be combined (e.g., language + date range)
+            getAllScansUseCase().collect { result ->
                 when (result) {
                     is Result.Success -> {
                         var filteredScans = result.data
 
-                        // Apply additional filters in memory
+                        // Apply all filters in memory
+                        if (filters.language != null) {
+                            filteredScans = filteredScans.filter { it.language == filters.language }
+                        }
+                        if (filters.dateRange != null) {
+                            filteredScans = filteredScans.filter {
+                                it.timestamp.time in filters.dateRange.startDate..filters.dateRange.endDate
+                            }
+                        }
                         if (filters.minConfidence != null) {
                             filteredScans = filteredScans.filter { it.confidenceScore >= filters.minConfidence }
                         }
