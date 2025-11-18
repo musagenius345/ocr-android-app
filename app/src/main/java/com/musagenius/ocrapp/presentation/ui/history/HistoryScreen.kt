@@ -25,7 +25,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -121,6 +125,33 @@ fun HistoryScreen(
                         }
                     },
                     actions = {
+                        // Sort button
+                        IconButton(onClick = viewModel::toggleSortDialog) {
+                            Icon(
+                                imageVector = Icons.Default.Sort,
+                                contentDescription = "Sort"
+                            )
+                        }
+
+                        // Filter button with badge
+                        IconButton(onClick = viewModel::toggleFilterSheet) {
+                            BadgedBox(
+                                badge = {
+                                    if (state.hasActiveFilters) {
+                                        Badge {
+                                            Text("${state.filterOptions.activeFilterCount()}")
+                                        }
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.FilterList,
+                                    contentDescription = "Filter"
+                                )
+                            }
+                        }
+
+                        // Search button
                         IconButton(onClick = { searchActive = true }) {
                             Icon(
                                 imageVector = Icons.Default.Search,
@@ -175,6 +206,16 @@ fun HistoryScreen(
                 }
             }
 
+            // Results count
+            if (!state.isEmpty && !state.isLoading) {
+                Text(
+                    text = state.getResultsCountMessage(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+
             // Content
             Box(
                 modifier = Modifier
@@ -208,6 +249,25 @@ fun HistoryScreen(
                     }
                 }
             }
+        }
+
+        // Filter bottom sheet
+        if (state.showFilterSheet) {
+            FilterBottomSheet(
+                currentFilters = state.filterOptions,
+                availableLanguages = state.availableLanguages,
+                onApplyFilters = viewModel::applyFilter,
+                onDismiss = viewModel::toggleFilterSheet
+            )
+        }
+
+        // Sort dialog
+        if (state.showSortDialog) {
+            SortDialog(
+                currentSortBy = state.sortBy,
+                onSortSelected = viewModel::changeSortOrder,
+                onDismiss = viewModel::toggleSortDialog
+            )
         }
     }
 }
