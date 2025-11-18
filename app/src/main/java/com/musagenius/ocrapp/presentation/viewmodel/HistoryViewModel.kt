@@ -10,6 +10,7 @@ import com.musagenius.ocrapp.domain.usecase.DeleteScanUseCase
 import com.musagenius.ocrapp.domain.usecase.GetAllScansUseCase
 import com.musagenius.ocrapp.domain.usecase.GetScansByDateRangeUseCase
 import com.musagenius.ocrapp.domain.usecase.GetScansByLanguageUseCase
+import com.musagenius.ocrapp.domain.usecase.InsertScanUseCase
 import com.musagenius.ocrapp.domain.usecase.SearchScansUseCase
 import com.musagenius.ocrapp.presentation.ui.history.HistoryState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,6 +32,7 @@ class HistoryViewModel @Inject constructor(
     private val getAllScansUseCase: GetAllScansUseCase,
     private val searchScansUseCase: SearchScansUseCase,
     private val deleteScanUseCase: DeleteScanUseCase,
+    private val insertScanUseCase: InsertScanUseCase,
     private val getScansByLanguageUseCase: GetScansByLanguageUseCase,
     private val getScansByDateRangeUseCase: GetScansByDateRangeUseCase
 ) : ViewModel() {
@@ -156,19 +158,38 @@ class HistoryViewModel @Inject constructor(
     }
 
     /**
-     * Undo delete operation
+     * Undo delete operation by re-inserting the recently deleted scan
      */
     fun undoDelete() {
-        // TODO: Implement undo delete by re-inserting the scan
-        // For now, just refresh the list
-        recentlyDeletedScan = null
-        _state.update {
-            it.copy(
-                showUndoDelete = false,
-                snackbarMessage = null
-            )
+        val scanToRestore = recentlyDeletedScan ?: return
+
+        viewModelScope.launch {
+            when (val result = insertScanUseCase(scanToRestore)) {
+                is Result.Success -> {
+                    // Successfully restored the scan
+                    recentlyDeletedScan = null
+                    _state.update {
+                        it.copy(
+                            showUndoDelete = false,
+                            snackbarMessage = "Scan restored",
+                        )
+                    }
+                    // Reload the list to show the restored scan
+                    loadScans()
+                }
+                is Result.Error -> {
+                    // Failed to restore
+                    _state.update {
+                        it.copy(
+                            showUndoDelete = false,
+                            snackbarMessage = "Failed to restore scan",
+                            error = result.exception.message ?: "Failed to restore scan"
+                        )
+                    }
+                }
+                else -> { /* No-op */ }
+            }
         }
-        loadScans()
     }
 
     /**
