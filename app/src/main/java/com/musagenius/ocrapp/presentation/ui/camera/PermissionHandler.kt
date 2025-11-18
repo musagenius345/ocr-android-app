@@ -18,22 +18,19 @@ fun PermissionRationaleDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(text = "Camera Permission Required")
+            Text(text = stringResource(R.string.camera_permission_required_title))
         },
         text = {
-            Text(
-                text = "This app needs camera access to scan documents and extract text. " +
-                        "Without camera permission, you can only select images from your gallery."
-            )
+            Text(text = stringResource(R.string.camera_permission_rationale))
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text("Grant Permission")
+                Text(stringResource(R.string.grant_permission))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
@@ -50,22 +47,19 @@ fun PermissionDeniedDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(text = "Camera Permission Denied")
+            Text(text = stringResource(R.string.camera_permission_denied_title))
         },
         text = {
-            Text(
-                text = "Camera permission was denied. To use the camera for scanning, " +
-                        "please enable camera permission in app settings."
-            )
+            Text(text = stringResource(R.string.camera_permission_denied_message))
         },
         confirmButton = {
             TextButton(onClick = onOpenSettings) {
-                Text("Open Settings")
+                Text(stringResource(R.string.open_settings))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Not Now")
+                Text(stringResource(R.string.not_now))
             }
         }
     )

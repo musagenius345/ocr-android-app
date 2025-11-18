@@ -49,4 +49,22 @@
     <string name="retry">Retry</string>
     <string name="close">Close</string>
     <string name="save">Save</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="back">Back</string>
+
+    <!-- OCR Results -->
+    <string name="extracted_text">Extracted Text</string>
+    <string name="extracted_text_clipboard_label">Extracted Text</string>
+
+    <!-- Permissions -->
+    <string name="grant_permission">Grant Permission</string>
+    <string name="not_now">Not Now</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="camera_permission_required_title">Camera Permission Required</string>
+    <string name="camera_permission_denied_title">Camera Permission Denied</string>
+    <string name="camera_permission_rationale">This app needs camera access to scan documents and extract text. Without camera permission, you can only select images from your gallery.</string>
+    <string name="camera_permission_denied_message">Camera permission was denied. To use the camera for scanning, please enable camera permission in app settings.</string>
+
+    <!-- Share -->
+    <string name="share_text_chooser_title">Share text</string>
 </resources>

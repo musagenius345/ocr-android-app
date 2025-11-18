@@ -29,15 +29,14 @@ object DatabaseModule {
             AppDatabase.DATABASE_NAME
         ).addMigrations(*AppDatabase.getAllMigrations())
 
-        // TODO: BEFORE PRODUCTION RELEASE
-        // 1. Remove fallbackToDestructiveMigration() completely for production
-        // 2. Verify all migrations in AppDatabase.getAllMigrations() are complete and tested
-        // 3. Test migration paths from every schema version to the latest
-        // 4. Consider adding onDestructiveMigration callback to log data loss events
-        // Issue: Create GitHub issue to track migration verification before v1.0.0
+        // PRODUCTION READINESS CHECKLIST (Complete before v1.0.0):
+        // ✅ Migration safety: fallbackToDestructiveMigration() restricted to DEBUG builds only
+        // ⚠️ BEFORE RELEASE: Verify all database migrations are tested (see AppDatabase.kt)
+        // ⚠️ BEFORE RELEASE: Test migration paths from all schema versions
+        // 💡 OPTIONAL: Add onDestructiveMigration callback to log unexpected data loss
 
-        // WARNING: fallbackToDestructiveMigration() DESTROYS USER DATA on migration failure
-        // Only enabled in debug builds to aid development. NEVER ship to production.
+        // Development aid: Allow destructive migration in debug builds only
+        // WARNING: This will DESTROY USER DATA if migration fails. Safe because DEBUG only.
         if (BuildConfig.DEBUG) {
             builder.fallbackToDestructiveMigration()
         }

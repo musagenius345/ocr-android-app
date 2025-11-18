@@ -38,6 +38,7 @@ class OCRServiceImpl @Inject constructor(
 
     private var tessBaseAPI: TessBaseAPI? = null
     private var currentLanguage: String = ""
+    @Suppress("SpellCheckingInspection")
     private val tessdataPath: String by lazy {
         // Use external storage if available, fallback to internal storage
         val baseDir = context.getExternalFilesDir(null) ?: context.filesDir
@@ -46,6 +47,7 @@ class OCRServiceImpl @Inject constructor(
 
     companion object {
         private const val TAG = "OCRService"
+        @Suppress("SpellCheckingInspection")
         private const val TESSDATA_FOLDER = "tessdata"
     }
 
@@ -100,14 +102,14 @@ class OCRServiceImpl @Inject constructor(
     /**
      * Initialize Tesseract with the specified configuration
      */
-    suspend fun initialize(config: OCRConfig = OCRConfig()): Result<Unit> = tessMutex.withLock {
+    override suspend fun initialize(config: OCRConfig = OCRConfig()): Result<Unit> = tessMutex.withLock {
         initializeInternal(config)
     }
 
     /**
      * Perform OCR on the given bitmap
      */
-    suspend fun recognizeText(
+    override suspend fun recognizeText(
         bitmap: Bitmap,
         config: OCRConfig = OCRConfig()
     ): Result<OCRResult> = tessMutex.withLock {
@@ -305,7 +307,7 @@ class OCRServiceImpl @Inject constructor(
     /**
      * Check if a language is available
      */
-    fun isLanguageAvailable(language: String): Boolean {
+    override fun isLanguageAvailable(language: String): Boolean {
         val fileName = "$language.traineddata"
         val file = File(tessdataPath, fileName)
         return file.exists()
@@ -314,7 +316,7 @@ class OCRServiceImpl @Inject constructor(
     /**
      * Get list of available languages
      */
-    fun getAvailableLanguages(): List<String> {
+    override fun getAvailableLanguages(): List<String> {
         val tessdataDir = File(tessdataPath)
         if (!tessdataDir.exists()) return emptyList()
 
@@ -327,14 +329,14 @@ class OCRServiceImpl @Inject constructor(
     /**
      * Stop OCR processing (if running)
      */
-    fun stop() {
+    override fun stop() {
         tessBaseAPI?.stop()
     }
 
     /**
      * Clean up resources
      */
-    fun cleanup() {
+    override fun cleanup() {
         tessBaseAPI?.end()
         tessBaseAPI = null
         currentLanguage = ""
@@ -344,7 +346,7 @@ class OCRServiceImpl @Inject constructor(
     /**
      * Get Tesseract version
      */
-    fun getVersion(): String {
-        return TessBaseAPI.getVersion()
+    override fun getVersion(): String {
+        return tessBaseAPI?.getVersion() ?: "Unknown"
     }
 }

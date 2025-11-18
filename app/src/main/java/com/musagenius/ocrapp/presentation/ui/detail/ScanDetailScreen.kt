@@ -160,7 +160,7 @@ fun ScanDetailScreen(
                 }
                 state.error != null -> {
                     ErrorState(
-                        error = state.error!!,
+                        error = state.error,
                         onRetry = viewModel::reloadScan,
                         modifier = Modifier.align(Alignment.Center)
                     )

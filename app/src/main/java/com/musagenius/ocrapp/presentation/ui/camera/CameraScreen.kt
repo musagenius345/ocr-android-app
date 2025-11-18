@@ -21,10 +21,12 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.musagenius.ocrapp.R
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -169,8 +171,10 @@ fun CameraScreen(
                     val density = LocalDensity.current
 
                     LaunchedEffect(previewView, cameraPermissionState.status.isGranted) {
-                        if (cameraPermissionState.status.isGranted && previewView != null) {
-                            viewModel.startCamera(lifecycleOwner, previewView!!)
+                        if (cameraPermissionState.status.isGranted) {
+                            previewView?.let { preview ->
+                                viewModel.startCamera(lifecycleOwner, preview)
+                            }
                         }
                     }
 
@@ -309,7 +313,7 @@ fun CameraScreen(
                         .padding(16.dp),
                     action = {
                         TextButton(onClick = { viewModel.onEvent(CameraEvent.DismissError) }) {
-                            Text("Dismiss")
+                            Text(stringResource(R.string.dismiss))
                         }
                     }
                 ) {
