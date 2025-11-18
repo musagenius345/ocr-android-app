@@ -75,8 +75,9 @@ fun OCRResultScreen(
                 }
                 uiState.error != null -> {
                     // Error state
+                    val errorMessage = uiState.error
                     OCRErrorView(
-                        error = uiState.error,
+                        error = errorMessage!!,
                         onRetry = {
                             haptic.performLightTap()
                             viewModel.onEvent(OCREvent.RetryProcessing)

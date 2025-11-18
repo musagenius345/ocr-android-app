@@ -226,8 +226,9 @@ fun HistoryScreen(
                         LoadingState(modifier = Modifier.fillMaxSize())
                     }
                     state.error != null -> {
+                        val errorMessage = state.error
                         ErrorState(
-                            error = state.error,
+                            error = errorMessage!!,
                             onRetry = viewModel::loadScans,
                             modifier = Modifier.fillMaxSize()
                         )

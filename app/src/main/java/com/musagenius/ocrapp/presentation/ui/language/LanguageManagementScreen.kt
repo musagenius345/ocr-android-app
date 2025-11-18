@@ -103,8 +103,9 @@ fun LanguageManagementScreen(
                     )
                 }
                 state.error != null && state.languages.isEmpty() -> {
+                    val errorMessage = state.error
                     ErrorState(
-                        error = state.error,
+                        error = errorMessage!!,
                         onRetry = viewModel::loadLanguages,
                         modifier = Modifier.align(Alignment.Center)
                     )

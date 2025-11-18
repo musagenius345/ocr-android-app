@@ -159,8 +159,9 @@ fun ScanDetailScreen(
                     )
                 }
                 state.error != null -> {
+                    val errorMessage = state.error
                     ErrorState(
-                        error = state.error,
+                        error = errorMessage!!,
                         onRetry = viewModel::reloadScan,
                         modifier = Modifier.align(Alignment.Center)
                     )
