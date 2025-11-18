@@ -7,10 +7,10 @@
 set -e
 
 REPO="musagenius345/ocr-android-app"
-PROJECT_NAME="Tesseract 4 Migration"
-MILESTONE="Tesseract 4 Migration"
+PROJECT_NAME="Tesseract 5 Migration"
+MILESTONE="Tesseract 5 Migration"
 
-echo "🚀 Creating GitHub issues for Tesseract 4 Migration"
+echo "🚀 Creating GitHub issues for Tesseract 5 Migration"
 echo "Repository: $REPO"
 echo ""
 

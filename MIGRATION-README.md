@@ -33,27 +33,7 @@ This repository now contains comprehensive documentation for migrating from Tess
 
 ---
 
-### 2. **ISSUE-5-REVIEW.md**
-**Status:** ⚠️ Archived (v1.0 - Tesseract 4 target)
-**Purpose:** Original technical review (now superseded)
-
-**What's Inside:**
-- Original analysis targeting Tesseract 4
-- Still valid architecture and migration strategy
-- Detailed risk assessment
-- Thread safety analysis
-- Cost-benefit analysis
-
-**Read this if:**
-- You want the detailed technical analysis (still 95% valid)
-- You need the comprehensive risk mitigation strategies
-- You want to see the evolution of the plan
-
-**Note:** Most content is still accurate; just mentally replace "Tesseract 4" with "Tesseract 5"
-
----
-
-### 3. **PROJECT-BOARD-TASKS.md** ⭐ IMPLEMENTATION GUIDE
+### 2. **PROJECT-BOARD-TASKS.md** ⭐ IMPLEMENTATION GUIDE
 **Status:** ✅ Current (works for Tesseract 5)
 **Purpose:** Complete task breakdown for migration
 
@@ -87,7 +67,7 @@ This repository now contains comprehensive documentation for migrating from Tess
 
 ---
 
-### 4. **GITHUB-PROJECT-SETUP-GUIDE.md** ⭐ PROJECT MANAGEMENT
+### 3. **GITHUB-PROJECT-SETUP-GUIDE.md** ⭐ PROJECT MANAGEMENT
 **Status:** ✅ Current
 **Purpose:** How to set up GitHub Project board
 
@@ -112,12 +92,12 @@ This repository now contains comprehensive documentation for migrating from Tess
 
 ---
 
-### 5. **create-project-issues.sh** 🤖 AUTOMATION SCRIPT
+### 4. **create-project-issues.sh** 🤖 AUTOMATION SCRIPT
 **Status:** ✅ Ready to use
 **Purpose:** Automated GitHub issue creation
 
 **What It Does:**
-- Creates GitHub milestone: "Tesseract 4 Migration"
+- Creates GitHub milestone: "Tesseract 5 Migration"
 - Creates ~30 key issues with labels
 - Links issues to milestone
 - Adds descriptions and acceptance criteria
@@ -139,7 +119,7 @@ gh auth login
 
 ---
 
-### 6. **implementation-plan.md**
+### 5. **implementation-plan.md**
 **Status:** ✅ Reference document
 **Purpose:** Documents current (Tesseract 3) OCR implementation
 
@@ -178,7 +158,7 @@ gh auth login
 → Read `implementation-plan.md`
 
 **See detailed technical analysis:**
-→ Read `ISSUE-5-REVIEW.md` (archived but detailed)
+→ Read `ISSUE-5-TESSERACT5-UPDATE.md`
 
 ---
 
