@@ -12,8 +12,11 @@ import com.musagenius.ocrapp.presentation.ui.camera.CameraFacing
 import com.musagenius.ocrapp.presentation.ui.camera.FlashMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicBoolean
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -44,6 +47,12 @@ class CameraManager @Inject constructor(
     private var lifecycleOwner: LifecycleOwner? = null
     private var previewView: PreviewView? = null
 
+    // Managed coroutine scope for image analysis
+    private var analysisScope: CoroutineScope? = null
+
+    // Atomic flag to skip frames while processing
+    private val isProcessingFrame = AtomicBoolean(false)
+
     // Callback for edge detection results
     private var edgeDetectionCallback: ((DocumentEdgeDetector.DocumentCorners?) -> Unit)? = null
 
@@ -69,6 +78,11 @@ class CameraManager @Inject constructor(
             this@CameraManager.lifecycleOwner = lifecycleOwner
             this@CameraManager.previewView = previewView
             this@CameraManager.currentCameraFacing = cameraFacing
+
+            // Create managed scope for image analysis
+            analysisScope?.cancel()
+            analysisScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+            isProcessingFrame.set(false)
 
             cameraProvider = getCameraProvider()
 
@@ -278,19 +292,34 @@ class CameraManager @Inject constructor(
      * Called by ImageAnalysis analyzer
      */
     private fun processImageForEdgeDetection(imageProxy: ImageProxy) {
-        try {
-            val edgeCallback = edgeDetectionCallback
-            val lightCallback = lightingConditionCallback
+        val edgeCallback = edgeDetectionCallback
+        val lightCallback = lightingConditionCallback
 
-            // Only process if there's at least one callback registered
-            if (edgeCallback == null && lightCallback == null) {
-                imageProxy.close()
-                return
-            }
+        // Only process if there's at least one callback registered
+        if (edgeCallback == null && lightCallback == null) {
+            imageProxy.close()
+            return
+        }
 
-            // Launch coroutine to process image asynchronously
-            CoroutineScope(Dispatchers.Default).launch {
-                try {
+        // Skip frame if already processing to prevent concurrent CPU-heavy work
+        if (!isProcessingFrame.compareAndSet(false, true)) {
+            imageProxy.close()
+            return
+        }
+
+        // Get the managed scope
+        val scope = analysisScope
+        if (scope == null) {
+            imageProxy.close()
+            isProcessingFrame.set(false)
+            return
+        }
+
+        // Launch coroutine in managed scope
+        scope.launch {
+            try {
+                // Perform heavy work on Default dispatcher
+                withContext(Dispatchers.Default) {
                     // Detect edges if callback is registered
                     val corners = if (edgeCallback != null) {
                         documentEdgeDetector.detectEdges(imageProxy)
@@ -310,15 +339,13 @@ class CameraManager @Inject constructor(
                         edgeCallback?.invoke(corners)
                         lightCondition?.let { lightCallback?.invoke(it) }
                     }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error in image analysis", e)
-                } finally {
-                    imageProxy.close()
                 }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in image analysis", e)
+            } finally {
+                imageProxy.close()
+                isProcessingFrame.set(false)
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error in image analysis processing", e)
-            imageProxy.close()
         }
     }
 
@@ -326,6 +353,11 @@ class CameraManager @Inject constructor(
      * Release camera resources
      */
     fun release() {
+        // Cancel managed scope to prevent coroutine leaks
+        analysisScope?.cancel()
+        analysisScope = null
+        isProcessingFrame.set(false)
+
         cameraProvider?.unbindAll()
         camera = null
         preview = null
