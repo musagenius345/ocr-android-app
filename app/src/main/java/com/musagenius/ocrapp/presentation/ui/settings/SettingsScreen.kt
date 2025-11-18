@@ -52,6 +52,7 @@ import kotlin.math.roundToInt
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToLanguageManagement: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val preferences by viewModel.preferences.collectAsState()
@@ -126,6 +127,18 @@ fun SettingsScreen(
                 subtitle = "Automatically focus when capturing",
                 checked = preferences.autoFocus,
                 onCheckedChange = viewModel::updateAutoFocus
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Language Section
+            SectionHeader(title = "Language")
+            Spacer(modifier = Modifier.height(8.dp))
+
+            PreferenceItem(
+                title = "OCR Languages",
+                subtitle = "Download and manage OCR language files",
+                onClick = onNavigateToLanguageManagement
             )
 
             Spacer(modifier = Modifier.height(24.dp))

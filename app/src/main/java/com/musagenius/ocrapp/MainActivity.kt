@@ -27,6 +27,7 @@ import com.musagenius.ocrapp.presentation.ui.camera.CameraScreen
 import com.musagenius.ocrapp.presentation.ui.detail.ScanDetailScreen
 import com.musagenius.ocrapp.presentation.ui.editor.ImageEditorScreen
 import com.musagenius.ocrapp.presentation.ui.history.HistoryScreen
+import com.musagenius.ocrapp.presentation.ui.language.LanguageManagementScreen
 import com.musagenius.ocrapp.presentation.ui.ocr.OCRResultScreen
 import com.musagenius.ocrapp.presentation.ui.settings.SettingsScreen
 import com.musagenius.ocrapp.presentation.ui.theme.OCRAppTheme
@@ -180,6 +181,16 @@ fun OCRAppNavigation() {
         // Settings screen
         composable(Screen.Settings.route) {
             SettingsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToLanguageManagement = {
+                    navController.navigate(Screen.LanguageManagement.route)
+                }
+            )
+        }
+
+        // Language Management screen
+        composable(Screen.LanguageManagement.route) {
+            LanguageManagementScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
