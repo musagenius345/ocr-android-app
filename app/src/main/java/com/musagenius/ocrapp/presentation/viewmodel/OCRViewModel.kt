@@ -208,7 +208,7 @@ class OCRViewModel @Inject constructor(
                 )
 
                 // Save to repository
-                val result = scanRepository.insert(scanResult)
+                val result = scanRepository.insertScan(scanResult)
 
                 result.fold(
                     onSuccess = { id ->
