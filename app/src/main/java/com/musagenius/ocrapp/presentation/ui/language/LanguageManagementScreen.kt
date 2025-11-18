@@ -103,11 +103,13 @@ fun LanguageManagementScreen(
                     )
                 }
                 state.error != null && state.languages.isEmpty() -> {
-                    ErrorState(
-                        error = state.error!!,
-                        onRetry = viewModel::loadLanguages,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    state.error.let { error ->
+                        ErrorState(
+                            error = error,
+                            onRetry = viewModel::loadLanguages,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
                 }
                 else -> {
                     Column(

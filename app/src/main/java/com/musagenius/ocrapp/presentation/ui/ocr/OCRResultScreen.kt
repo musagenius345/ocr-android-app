@@ -19,10 +19,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.musagenius.ocrapp.R
 import com.musagenius.ocrapp.presentation.ui.components.rememberHapticFeedback
 import com.musagenius.ocrapp.presentation.viewmodel.OCRViewModel
 
@@ -72,16 +74,18 @@ fun OCRResultScreen(
                 }
                 uiState.error != null -> {
                     // Error state
-                    OCRErrorView(
-                        error = uiState.error!!,
-                        onRetry = {
-                            haptic.performLightTap()
-                            viewModel.onEvent(OCREvent.RetryProcessing)
-                        },
-                        onDismiss = {
-                            viewModel.onEvent(OCREvent.DismissError)
-                        }
-                    )
+                    uiState.error.let { error ->
+                        OCRErrorView(
+                            error = error,
+                            onRetry = {
+                                haptic.performLightTap()
+                                viewModel.onEvent(OCREvent.RetryProcessing)
+                            },
+                            onDismiss = {
+                                viewModel.onEvent(OCREvent.DismissError)
+                            }
+                        )
+                    }
                 }
                 uiState.extractedText.isNotEmpty() -> {
                     // Success state
@@ -115,7 +119,7 @@ fun OCRResultTopBar(
     val haptic = rememberHapticFeedback()
 
     TopAppBar(
-        title = { Text("Extracted Text") },
+        title = { Text(stringResource(R.string.extracted_text)) },
         navigationIcon = {
             IconButton(
                 onClick = {
@@ -246,7 +250,7 @@ fun OCRErrorView(
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Retry")
+            Text(stringResource(R.string.retry))
         }
     }
 }
@@ -335,7 +339,7 @@ fun OCRResultContent(
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Copy")
+                Text(stringResource(R.string.copy_text))
             }
 
             OutlinedButton(
@@ -353,7 +357,7 @@ fun OCRResultContent(
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Share")
+                Text(stringResource(R.string.share_text))
             }
         }
 
@@ -416,7 +420,10 @@ fun StatItem(label: String, value: String) {
  */
 private fun copyToClipboard(context: Context, text: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    val clip = ClipData.newPlainText("Extracted Text", text)
+    val clip = ClipData.newPlainText(
+        context.getString(R.string.extracted_text_clipboard_label),
+        text
+    )
     clipboard.setPrimaryClip(clip)
 }
 

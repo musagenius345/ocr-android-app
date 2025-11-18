@@ -28,12 +28,12 @@ fun PermissionRationaleDialog(
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text("Grant Permission")
+                Text(stringResource(R.string.grant_permission))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
@@ -60,12 +60,12 @@ fun PermissionDeniedDialog(
         },
         confirmButton = {
             TextButton(onClick = onOpenSettings) {
-                Text("Open Settings")
+                Text(stringResource(R.string.open_settings))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Not Now")
+                Text(stringResource(R.string.not_now))
             }
         }
     )

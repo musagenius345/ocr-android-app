@@ -227,11 +227,13 @@ fun HistoryScreen(
                         LoadingState(modifier = Modifier.fillMaxSize())
                     }
                     state.error != null -> {
-                        ErrorState(
-                            error = state.error!!,
-                            onRetry = viewModel::loadScans,
-                            modifier = Modifier.fillMaxSize()
-                        )
+                        state.error.let { error ->
+                            ErrorState(
+                                error = error,
+                                onRetry = viewModel::loadScans,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
                     }
                     state.isEmpty -> {
                         EmptyState(

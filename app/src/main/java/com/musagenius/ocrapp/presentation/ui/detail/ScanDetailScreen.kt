@@ -159,11 +159,13 @@ fun ScanDetailScreen(
                     )
                 }
                 state.error != null -> {
-                    ErrorState(
-                        error = state.error!!,
-                        onRetry = viewModel::reloadScan,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    state.error.let { error ->
+                        ErrorState(
+                            error = error,
+                            onRetry = viewModel::reloadScan,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
                 }
                 state.scan != null -> {
                     ScanDetailContent(
