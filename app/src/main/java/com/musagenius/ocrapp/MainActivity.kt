@@ -9,6 +9,8 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -197,6 +199,7 @@ fun OCRAppNavigation() {
     }
 }
 
+@androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
 fun PlaceholderScreen(
     title: String,
@@ -210,7 +213,7 @@ fun PlaceholderScreen(
                 navigationIcon = {
                     androidx.compose.material3.IconButton(onClick = onNavigateBack) {
                         androidx.compose.material3.Icon(
-                            imageVector = androidx.compose.material.icons.Icons.Default.ArrowBack,
+                            imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
