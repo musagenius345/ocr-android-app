@@ -74,18 +74,16 @@ fun OCRResultScreen(
                 }
                 uiState.error != null -> {
                     // Error state
-                    uiState.error.let { error ->
-                        OCRErrorView(
-                            error = error,
-                            onRetry = {
-                                haptic.performLightTap()
-                                viewModel.onEvent(OCREvent.RetryProcessing)
-                            },
-                            onDismiss = {
-                                viewModel.onEvent(OCREvent.DismissError)
-                            }
-                        )
-                    }
+                    OCRErrorView(
+                        error = uiState.error,
+                        onRetry = {
+                            haptic.performLightTap()
+                            viewModel.onEvent(OCREvent.RetryProcessing)
+                        },
+                        onDismiss = {
+                            viewModel.onEvent(OCREvent.DismissError)
+                        }
+                    )
                 }
                 uiState.extractedText.isNotEmpty() -> {
                     // Success state
@@ -435,5 +433,7 @@ private fun shareText(context: Context, text: String) {
         type = "text/plain"
         putExtra(Intent.EXTRA_TEXT, text)
     }
-    context.startActivity(Intent.createChooser(intent, "Share text"))
+    context.startActivity(
+        Intent.createChooser(intent, context.getString(R.string.share_text_chooser_title))
+    )
 }
