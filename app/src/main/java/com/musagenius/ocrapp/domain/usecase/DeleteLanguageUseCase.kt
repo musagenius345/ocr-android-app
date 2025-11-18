@@ -31,25 +31,30 @@ class DeleteLanguageUseCase @Inject constructor(
         try {
             // Don't allow deleting English as it's the default
             if (languageCode == "eng") {
-                return@withContext Result.failure(
-                    IllegalArgumentException("Cannot delete default language (English)")
+                return@withContext Result.error(
+                    IllegalArgumentException("Cannot delete default language (English)"),
+                    "Cannot delete default language (English)"
                 )
             }
 
             // Get tessdata directory path
             val tessdataPath = tessdataDir()
-                ?: return@withContext Result.failure(
-                    IllegalStateException("External files directory not available")
+                ?: return@withContext Result.error(
+                    IllegalStateException("External files directory not available"),
+                    "External files directory not available"
                 )
 
             val deleted = deleteLanguageFileInternal(tessdataPath, languageCode)
             if (deleted) {
                 Result.success(Unit)
             } else {
-                Result.failure(Exception("Failed to delete language file: $languageCode"))
+                Result.error(
+                    Exception("Failed to delete language file: $languageCode"),
+                    "Failed to delete language file: $languageCode"
+                )
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.error(e, e.message ?: "Failed to delete language file")
         }
     }
 
@@ -78,14 +83,12 @@ class DeleteLanguageUseCase @Inject constructor(
         return try {
             // Let invoke() manage the IO dispatcher to avoid nested contexts
             val results = languageCodes.associateWith { code ->
-                invoke(code).fold(
-                    onSuccess = { true },
-                    onFailure = { false }
-                )
+                val result = invoke(code)
+                result.isSuccess()
             }
             Result.success(results)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.error(e, e.message ?: "Failed to delete multiple language files")
         }
     }
 
@@ -108,7 +111,7 @@ class DeleteLanguageUseCase @Inject constructor(
 
             Result.success(totalSize)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.error(e, e.message ?: "Failed to calculate total language files size")
         }
     }
 
@@ -127,7 +130,7 @@ class DeleteLanguageUseCase @Inject constructor(
             val size = if (languageFile.exists()) languageFile.length() else 0L
             Result.success(size)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.error(e, e.message ?: "Failed to get language file size")
         }
     }
 }
