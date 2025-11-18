@@ -46,6 +46,7 @@ fun CameraScreen(
     onImageCaptured: (Uri) -> Unit,
     onGalleryImageSelected: (Uri) -> Unit = onImageCaptured,
     onNavigateToHistory: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     onNavigateBack: () -> Unit,
     viewModel: CameraViewModel = hiltViewModel()
 ) {
@@ -360,6 +361,24 @@ fun CameraTopBar(
             }
         },
         actions = {
+            // Settings button
+            IconButton(
+                onClick = {
+                    haptic.performLightTap()
+                    onNavigateToSettings()
+                },
+                modifier = Modifier
+                    .size(48.dp)
+                    .semantics {
+                        contentDescription = "Open settings"
+                    }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Settings"
+                )
+            }
+
             // History button
             IconButton(
                 onClick = {
