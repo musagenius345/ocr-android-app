@@ -14,5 +14,8 @@ dependencyResolutionManagement {
     }
 }
 
+// Gradle 9.0 compatibility: Enable stable configuration cache
+enableFeaturePreview("STABLE_CONFIGURATION_CACHE")
+
 rootProject.name = "OCR App"
 include(":app")

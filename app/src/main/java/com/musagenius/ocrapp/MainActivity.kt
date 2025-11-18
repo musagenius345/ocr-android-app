@@ -2,6 +2,7 @@ package com.musagenius.ocrapp
 
 import android.net.Uri
 import android.os.Bundle
+import androidx.core.net.toUri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -9,6 +10,8 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -115,7 +118,7 @@ fun OCRAppNavigation() {
             }
 
             val decodedUriString = Uri.decode(encodedUriString)
-            val imageUri = Uri.parse(decodedUriString)
+            val imageUri = decodedUriString.toUri()
 
             ImageEditorScreen(
                 sourceImageUri = imageUri,
@@ -148,7 +151,7 @@ fun OCRAppNavigation() {
             }
 
             val decodedUriString = Uri.decode(encodedUriString)
-            val imageUri = Uri.parse(decodedUriString)
+            val imageUri = decodedUriString.toUri()
 
             OCRResultScreen(
                 imageUri = imageUri,
@@ -197,6 +200,7 @@ fun OCRAppNavigation() {
     }
 }
 
+@androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
 fun PlaceholderScreen(
     title: String,
@@ -210,7 +214,7 @@ fun PlaceholderScreen(
                 navigationIcon = {
                     androidx.compose.material3.IconButton(onClick = onNavigateBack) {
                         androidx.compose.material3.Icon(
-                            imageVector = androidx.compose.material.icons.Icons.Default.ArrowBack,
+                            imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
