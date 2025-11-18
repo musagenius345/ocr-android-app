@@ -45,6 +45,7 @@ import java.util.Locale
 fun CameraScreen(
     onImageCaptured: (Uri) -> Unit,
     onGalleryImageSelected: (Uri) -> Unit = onImageCaptured,
+    onNavigateToHistory: () -> Unit = {},
     onNavigateBack: () -> Unit,
     viewModel: CameraViewModel = hiltViewModel()
 ) {
@@ -124,6 +125,7 @@ fun CameraScreen(
         topBar = {
             CameraTopBar(
                 onNavigateBack = onNavigateBack,
+                onNavigateToHistory = onNavigateToHistory,
                 flashMode = uiState.flashMode,
                 onToggleFlash = { viewModel.onEvent(CameraEvent.ToggleFlash) }
             )
@@ -333,6 +335,7 @@ fun CameraScreen(
 @Composable
 fun CameraTopBar(
     onNavigateBack: () -> Unit,
+    onNavigateToHistory: () -> Unit,
     flashMode: FlashMode,
     onToggleFlash: () -> Unit
 ) {
@@ -357,6 +360,25 @@ fun CameraTopBar(
             }
         },
         actions = {
+            // History button
+            IconButton(
+                onClick = {
+                    haptic.performLightTap()
+                    onNavigateToHistory()
+                },
+                modifier = Modifier
+                    .size(48.dp)
+                    .semantics {
+                        contentDescription = "View scan history"
+                    }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = "History"
+                )
+            }
+
+            // Flash toggle button
             IconButton(
                 onClick = {
                     haptic.performLightTap()

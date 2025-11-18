@@ -20,6 +20,7 @@ import androidx.navigation.navArgument
 import com.musagenius.ocrapp.presentation.navigation.Screen
 import com.musagenius.ocrapp.presentation.ui.camera.CameraScreen
 import com.musagenius.ocrapp.presentation.ui.editor.ImageEditorScreen
+import com.musagenius.ocrapp.presentation.ui.history.HistoryScreen
 import com.musagenius.ocrapp.presentation.ui.ocr.OCRResultScreen
 import com.musagenius.ocrapp.presentation.ui.theme.OCRAppTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -64,6 +65,9 @@ fun OCRAppNavigation() {
                 onGalleryImageSelected = { imageUri ->
                     // Navigate to image editor for gallery images
                     navController.navigate(Screen.ImageEditor.createRoute(imageUri.toString()))
+                },
+                onNavigateToHistory = {
+                    navController.navigate(Screen.History.route)
                 },
                 onNavigateBack = {
                     navController.navigateUp()
@@ -126,12 +130,13 @@ fun OCRAppNavigation() {
             )
         }
 
-        // History screen (placeholder for Phase 4)
+        // History screen
         composable(Screen.History.route) {
-            PlaceholderScreen(
-                title = "History Screen",
-                subtitle = "Coming in Phase 4",
-                onNavigateBack = { navController.popBackStack() }
+            HistoryScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onScanClick = { imageUri ->
+                    navController.navigate(Screen.Results.createRoute(imageUri.toString()))
+                }
             )
         }
 
