@@ -2,6 +2,7 @@ package com.musagenius.ocrapp
 
 import android.net.Uri
 import android.os.Bundle
+import androidx.core.net.toUri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -117,7 +118,7 @@ fun OCRAppNavigation() {
             }
 
             val decodedUriString = Uri.decode(encodedUriString)
-            val imageUri = Uri.parse(decodedUriString)
+            val imageUri = decodedUriString.toUri()
 
             ImageEditorScreen(
                 sourceImageUri = imageUri,
@@ -150,7 +151,7 @@ fun OCRAppNavigation() {
             }
 
             val decodedUriString = Uri.decode(encodedUriString)
-            val imageUri = Uri.parse(decodedUriString)
+            val imageUri = decodedUriString.toUri()
 
             OCRResultScreen(
                 imageUri = imageUri,
