@@ -19,6 +19,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.musagenius.ocrapp.presentation.navigation.Screen
 import com.musagenius.ocrapp.presentation.ui.camera.CameraScreen
+import com.musagenius.ocrapp.presentation.ui.editor.ImageEditorScreen
 import com.musagenius.ocrapp.presentation.ui.ocr.OCRResultScreen
 import com.musagenius.ocrapp.presentation.ui.theme.OCRAppTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -60,8 +61,44 @@ fun OCRAppNavigation() {
                     // Navigate to results screen with the captured image
                     navController.navigate(Screen.Results.createRoute(imageUri.toString()))
                 },
+                onGalleryImageSelected = { imageUri ->
+                    // Navigate to image editor for gallery images
+                    navController.navigate(Screen.ImageEditor.createRoute(imageUri.toString()))
+                },
                 onNavigateBack = {
                     navController.navigateUp()
+                }
+            )
+        }
+
+        // Image Editor screen
+        composable(
+            route = Screen.ImageEditor.route,
+            arguments = listOf(
+                navArgument("imageUri") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val encodedUriString = backStackEntry.arguments?.getString("imageUri")
+            if (encodedUriString == null) {
+                navController.popBackStack()
+                return@composable
+            }
+
+            val decodedUriString = Uri.decode(encodedUriString)
+            val imageUri = Uri.parse(decodedUriString)
+
+            ImageEditorScreen(
+                sourceImageUri = imageUri,
+                onImageSaved = { editedUri ->
+                    // Navigate to results with edited image
+                    navController.navigate(Screen.Results.createRoute(editedUri.toString())) {
+                        // Remove image editor from back stack
+                        popUpTo(Screen.Camera.route)
+                    }
+                },
+                onCancel = {
+                    // Return to camera screen
+                    navController.popBackStack()
                 }
             )
         }

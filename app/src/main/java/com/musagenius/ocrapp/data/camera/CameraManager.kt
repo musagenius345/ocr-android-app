@@ -3,15 +3,22 @@ package com.musagenius.ocrapp.data.camera
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import android.util.Size
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.musagenius.ocrapp.presentation.ui.camera.CameraFacing
+import com.musagenius.ocrapp.presentation.ui.camera.CameraResolution
 import com.musagenius.ocrapp.presentation.ui.camera.FlashMode
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicBoolean
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -28,16 +35,31 @@ import kotlin.coroutines.suspendCoroutine
  */
 @ActivityRetainedScoped
 class CameraManager @Inject constructor(
-    private val context: Context
+    private val context: Context,
+    private val documentEdgeDetector: DocumentEdgeDetector,
+    private val lowLightDetector: LowLightDetector
 ) {
     private var cameraProvider: ProcessCameraProvider? = null
     private var camera: Camera? = null
     private var preview: Preview? = null
     private var imageCapture: ImageCapture? = null
+    private var imageAnalysis: ImageAnalysis? = null
     private val executor: Executor = ContextCompat.getMainExecutor(context)
     private var currentCameraFacing: CameraFacing = CameraFacing.BACK
     private var lifecycleOwner: LifecycleOwner? = null
     private var previewView: PreviewView? = null
+
+    // Managed coroutine scope for image analysis
+    private var analysisScope: CoroutineScope? = null
+
+    // Atomic flag to skip frames while processing
+    private val isProcessingFrame = AtomicBoolean(false)
+
+    // Callback for edge detection results
+    private var edgeDetectionCallback: ((DocumentEdgeDetector.DocumentCorners?) -> Unit)? = null
+
+    // Callback for lighting condition updates
+    private var lightingConditionCallback: ((LowLightDetector.LightingCondition) -> Unit)? = null
 
     companion object {
         private const val TAG = "CameraManager"
@@ -51,7 +73,8 @@ class CameraManager @Inject constructor(
         lifecycleOwner: LifecycleOwner,
         previewView: PreviewView,
         flashMode: FlashMode = FlashMode.OFF,
-        cameraFacing: CameraFacing = CameraFacing.BACK
+        cameraFacing: CameraFacing = CameraFacing.BACK,
+        resolution: CameraResolution = CameraResolution.HD
     ) = withContext(Dispatchers.Main) {
         try {
             // Save references for camera operations
@@ -59,13 +82,22 @@ class CameraManager @Inject constructor(
             this@CameraManager.previewView = previewView
             this@CameraManager.currentCameraFacing = cameraFacing
 
+            // Create managed scope for image analysis
+            analysisScope?.cancel()
+            analysisScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+            isProcessingFrame.set(false)
+
             cameraProvider = getCameraProvider()
 
             // Unbind all use cases before rebinding
             cameraProvider?.unbindAll()
 
+            // Target resolution size
+            val targetResolution = Size(resolution.width, resolution.height)
+
             // Set up Preview use case
             preview = Preview.Builder()
+                .setTargetResolution(targetResolution)
                 .build()
                 .also {
                     it.setSurfaceProvider(previewView.surfaceProvider)
@@ -75,7 +107,20 @@ class CameraManager @Inject constructor(
             imageCapture = ImageCapture.Builder()
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
                 .setFlashMode(flashMode.toImageCaptureFlashMode())
+                .setTargetResolution(targetResolution)
                 .build()
+
+            // Set up ImageAnalysis for edge detection
+            imageAnalysis = ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .setTargetResolution(targetResolution)
+                .build()
+                .also { analysis ->
+                    analysis.setAnalyzer(executor) { imageProxy ->
+                        // Process image for edge detection on background thread
+                        processImageForEdgeDetection(imageProxy)
+                    }
+                }
 
             // Select camera based on facing
             val cameraSelector = when (cameraFacing) {
@@ -88,7 +133,8 @@ class CameraManager @Inject constructor(
                 lifecycleOwner,
                 cameraSelector,
                 preview,
-                imageCapture
+                imageCapture,
+                imageAnalysis
             )
 
             Log.d(TAG, "Camera started successfully with ${cameraFacing.getDisplayName()}")
@@ -223,13 +269,111 @@ class CameraManager @Inject constructor(
     }
 
     /**
+     * Set callback for edge detection results
+     */
+    fun setEdgeDetectionCallback(callback: (DocumentEdgeDetector.DocumentCorners?) -> Unit) {
+        edgeDetectionCallback = callback
+    }
+
+    /**
+     * Clear edge detection callback
+     */
+    fun clearEdgeDetectionCallback() {
+        edgeDetectionCallback = null
+    }
+
+    /**
+     * Set callback for lighting condition updates
+     */
+    fun setLightingConditionCallback(callback: (LowLightDetector.LightingCondition) -> Unit) {
+        lightingConditionCallback = callback
+    }
+
+    /**
+     * Clear lighting condition callback
+     */
+    fun clearLightingConditionCallback() {
+        lightingConditionCallback = null
+    }
+
+    /**
+     * Process image for edge detection and lighting analysis
+     * Called by ImageAnalysis analyzer
+     */
+    private fun processImageForEdgeDetection(imageProxy: ImageProxy) {
+        val edgeCallback = edgeDetectionCallback
+        val lightCallback = lightingConditionCallback
+
+        // Only process if there's at least one callback registered
+        if (edgeCallback == null && lightCallback == null) {
+            imageProxy.close()
+            return
+        }
+
+        // Skip frame if already processing to prevent concurrent CPU-heavy work
+        if (!isProcessingFrame.compareAndSet(false, true)) {
+            imageProxy.close()
+            return
+        }
+
+        // Get the managed scope
+        val scope = analysisScope
+        if (scope == null) {
+            imageProxy.close()
+            isProcessingFrame.set(false)
+            return
+        }
+
+        // Launch coroutine in managed scope
+        scope.launch {
+            try {
+                // Perform heavy work on Default dispatcher
+                withContext(Dispatchers.Default) {
+                    // Detect edges if callback is registered
+                    val corners = if (edgeCallback != null) {
+                        documentEdgeDetector.detectEdges(imageProxy)
+                    } else {
+                        null
+                    }
+
+                    // Detect lighting condition if callback is registered
+                    val lightCondition = if (lightCallback != null) {
+                        lowLightDetector.detectLightingCondition(imageProxy)
+                    } else {
+                        null
+                    }
+
+                    // Post results on main thread
+                    withContext(Dispatchers.Main) {
+                        edgeCallback?.invoke(corners)
+                        lightCondition?.let { lightCallback?.invoke(it) }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in image analysis", e)
+            } finally {
+                imageProxy.close()
+                isProcessingFrame.set(false)
+            }
+        }
+    }
+
+    /**
      * Release camera resources
      */
     fun release() {
+        // Cancel managed scope to prevent coroutine leaks
+        analysisScope?.cancel()
+        analysisScope = null
+        isProcessingFrame.set(false)
+
         cameraProvider?.unbindAll()
         camera = null
         preview = null
         imageCapture = null
+        imageAnalysis = null
+        edgeDetectionCallback = null
+        lightingConditionCallback = null
         Log.d(TAG, "Camera released")
     }
 

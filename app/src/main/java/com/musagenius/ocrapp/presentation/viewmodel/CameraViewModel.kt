@@ -7,6 +7,8 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.musagenius.ocrapp.data.camera.CameraManager
+import com.musagenius.ocrapp.data.camera.DocumentEdgeDetector
+import com.musagenius.ocrapp.data.camera.LowLightDetector
 import com.musagenius.ocrapp.data.utils.ImageCompressor
 import com.musagenius.ocrapp.data.utils.StorageManager
 import com.musagenius.ocrapp.presentation.ui.camera.CameraEvent
@@ -33,6 +35,10 @@ class CameraViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CameraUiState())
     val uiState: StateFlow<CameraUiState> = _uiState.asStateFlow()
 
+    // Store references for camera restart operations
+    private var lifecycleOwner: LifecycleOwner? = null
+    private var previewView: PreviewView? = null
+
     companion object {
         private const val TAG = "CameraViewModel"
     }
@@ -53,6 +59,14 @@ class CameraViewModel @Inject constructor(
             is CameraEvent.SetExposure -> setExposure(event.compensation)
             is CameraEvent.FlipCamera -> flipCamera()
             is CameraEvent.ToggleGridOverlay -> toggleGridOverlay()
+            is CameraEvent.ToggleDocumentOverlay -> toggleDocumentOverlay()
+            is CameraEvent.UpdateDocumentCorners -> updateDocumentCorners(event.corners)
+            is CameraEvent.UpdatePreviewSize -> updatePreviewSize(event.width, event.height)
+            is CameraEvent.UpdateLightingCondition -> updateLightingCondition(event.condition)
+            is CameraEvent.DismissLowLightWarning -> dismissLowLightWarning()
+            is CameraEvent.ShowResolutionDialog -> showResolutionDialog()
+            is CameraEvent.DismissResolutionDialog -> dismissResolutionDialog()
+            is CameraEvent.SetResolution -> setResolution(event.resolution)
         }
     }
 
@@ -65,14 +79,29 @@ class CameraViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             try {
+                // Store references for camera restart operations (e.g., resolution change)
+                this@CameraViewModel.lifecycleOwner = lifecycleOwner
+                this@CameraViewModel.previewView = previewView
+
                 _uiState.update { it.copy(isLoading = true, error = null) }
 
                 cameraManager.startCamera(
                     lifecycleOwner = lifecycleOwner,
                     previewView = previewView,
                     flashMode = _uiState.value.flashMode,
-                    cameraFacing = _uiState.value.cameraFacing
+                    cameraFacing = _uiState.value.cameraFacing,
+                    resolution = _uiState.value.resolution
                 )
+
+                // Set up edge detection callback
+                cameraManager.setEdgeDetectionCallback { corners ->
+                    onEvent(CameraEvent.UpdateDocumentCorners(corners))
+                }
+
+                // Set up lighting condition callback
+                cameraManager.setLightingConditionCallback { condition ->
+                    onEvent(CameraEvent.UpdateLightingCondition(condition))
+                }
 
                 // Update camera capabilities after starting
                 updateCameraCapabilities()
@@ -243,6 +272,95 @@ class CameraViewModel @Inject constructor(
     }
 
     /**
+     * Toggle document edge detection overlay
+     */
+    private fun toggleDocumentOverlay() {
+        _uiState.update { it.copy(showDocumentOverlay = !it.showDocumentOverlay) }
+        Log.d(TAG, "Document overlay: ${_uiState.value.showDocumentOverlay}")
+    }
+
+    /**
+     * Update detected document corners
+     */
+    private fun updateDocumentCorners(corners: DocumentEdgeDetector.DocumentCorners?) {
+        _uiState.update { it.copy(documentCorners = corners) }
+    }
+
+    /**
+     * Update preview size for overlay calculations
+     */
+    private fun updatePreviewSize(width: Float, height: Float) {
+        _uiState.update { it.copy(previewWidth = width, previewHeight = height) }
+        Log.d(TAG, "Preview size updated: ${width}x$height")
+    }
+
+    /**
+     * Update lighting condition from camera analysis
+     */
+    private fun updateLightingCondition(condition: LowLightDetector.LightingCondition) {
+        _uiState.update { it.copy(lightingCondition = condition) }
+        Log.d(TAG, "Lighting condition updated: $condition")
+    }
+
+    /**
+     * Dismiss low light warning
+     */
+    private fun dismissLowLightWarning() {
+        _uiState.update { it.copy(showLowLightWarning = false) }
+        Log.d(TAG, "Low light warning dismissed")
+    }
+
+    /**
+     * Show resolution selection dialog
+     */
+    private fun showResolutionDialog() {
+        _uiState.update { it.copy(showResolutionDialog = true) }
+        Log.d(TAG, "Resolution dialog shown")
+    }
+
+    /**
+     * Dismiss resolution selection dialog
+     */
+    private fun dismissResolutionDialog() {
+        _uiState.update { it.copy(showResolutionDialog = false) }
+        Log.d(TAG, "Resolution dialog dismissed")
+    }
+
+    /**
+     * Set camera resolution and restart camera
+     */
+    private fun setResolution(resolution: CameraResolution) {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(resolution = resolution, showResolutionDialog = false, isLoading = true) }
+                Log.d(TAG, "Resolution changed to: ${resolution.getDisplayName()}")
+
+                // Restart camera with new resolution
+                val lifecycleOwner = lifecycleOwner ?: return@launch
+                val previewView = previewView ?: return@launch
+
+                cameraManager.startCamera(
+                    lifecycleOwner = lifecycleOwner,
+                    previewView = previewView,
+                    flashMode = _uiState.value.flashMode,
+                    cameraFacing = _uiState.value.cameraFacing,
+                    resolution = resolution
+                )
+
+                _uiState.update { it.copy(isLoading = false) }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to change resolution", e)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "Failed to change resolution: ${e.localizedMessage}"
+                    )
+                }
+            }
+        }
+    }
+
+    /**
      * Update camera capabilities (zoom range, exposure range)
      */
     private fun updateCameraCapabilities() {
@@ -293,7 +411,14 @@ class CameraViewModel @Inject constructor(
      */
     override fun onCleared() {
         super.onCleared()
+        cameraManager.clearEdgeDetectionCallback()
+        cameraManager.clearLightingConditionCallback()
         cameraManager.release()
+
+        // Clear references to avoid memory leaks
+        lifecycleOwner = null
+        previewView = null
+
         Log.d(TAG, "ViewModel cleared, camera released")
     }
 }

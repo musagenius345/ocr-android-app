@@ -16,7 +16,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -26,6 +28,8 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import com.musagenius.ocrapp.data.camera.LowLightDetector
+import com.musagenius.ocrapp.presentation.ui.components.DocumentOverlay
 import com.musagenius.ocrapp.presentation.ui.components.GridOverlay
 import com.musagenius.ocrapp.presentation.ui.components.ShutterAnimation
 import com.musagenius.ocrapp.presentation.ui.components.rememberHapticFeedback
@@ -40,6 +44,7 @@ import java.util.Locale
 @Composable
 fun CameraScreen(
     onImageCaptured: (Uri) -> Unit,
+    onGalleryImageSelected: (Uri) -> Unit = onImageCaptured,
     onNavigateBack: () -> Unit,
     viewModel: CameraViewModel = hiltViewModel()
 ) {
@@ -58,7 +63,7 @@ fun CameraScreen(
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { onImageCaptured(it) }
+        uri?.let { onGalleryImageSelected(it) }
     }
 
     // Permission rationale dialog state
@@ -157,6 +162,7 @@ fun CameraScreen(
                 else -> {
                     // Camera preview
                     var previewView: androidx.camera.view.PreviewView? by remember { mutableStateOf(null) }
+                    val density = LocalDensity.current
 
                     LaunchedEffect(previewView, cameraPermissionState.status.isGranted) {
                         if (cameraPermissionState.status.isGranted && previewView != null) {
@@ -167,6 +173,17 @@ fun CameraScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
+                            .onSizeChanged { size ->
+                                // Track preview size for document overlay
+                                with(density) {
+                                    viewModel.onEvent(
+                                        CameraEvent.UpdatePreviewSize(
+                                            width = size.width.toFloat(),
+                                            height = size.height.toFloat()
+                                        )
+                                    )
+                                }
+                            }
                             .pointerInput(Unit) {
                                 // Pinch-to-zoom gesture
                                 detectTransformGestures { _, _, zoom, _ ->
@@ -194,28 +211,69 @@ fun CameraScreen(
                             GridOverlay()
                         }
 
+                        // Document edge detection overlay
+                        if (uiState.showDocumentOverlay && uiState.previewWidth > 0 && uiState.previewHeight > 0) {
+                            DocumentOverlay(
+                                corners = uiState.documentCorners,
+                                viewWidth = uiState.previewWidth,
+                                viewHeight = uiState.previewHeight
+                            )
+                        }
+
+                        // Low light warning
+                        if (uiState.showLowLightWarning &&
+                            (uiState.lightingCondition == LowLightDetector.LightingCondition.LOW ||
+                             uiState.lightingCondition == LowLightDetector.LightingCondition.VERY_LOW)
+                        ) {
+                            LowLightWarning(
+                                modifier = Modifier
+                                    .align(Alignment.TopCenter)
+                                    .padding(top = 16.dp),
+                                condition = uiState.lightingCondition,
+                                onDismiss = {
+                                    viewModel.onEvent(CameraEvent.DismissLowLightWarning)
+                                },
+                                onEnableFlash = {
+                                    if (uiState.flashMode == FlashMode.OFF) {
+                                        haptic.performLightTap()
+                                        viewModel.onEvent(CameraEvent.ToggleFlash)
+                                    }
+                                }
+                            )
+                        }
+
                         // Shutter animation overlay
                         ShutterAnimation(
                             trigger = showShutterAnimation,
                             onAnimationComplete = { showShutterAnimation = false }
                         )
 
-                        // Top controls (zoom, grid, flip)
+                        // Top controls (zoom, grid, document overlay, flip, resolution)
                         CameraTopControls(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .padding(16.dp),
                             zoomRatio = uiState.zoomRatio,
                             showGridOverlay = uiState.showGridOverlay,
+                            showDocumentOverlay = uiState.showDocumentOverlay,
                             cameraFacing = uiState.cameraFacing,
+                            currentResolution = uiState.resolution,
                             onZoomChange = { viewModel.onEvent(CameraEvent.SetZoom(it)) },
                             onToggleGrid = {
                                 haptic.performLightTap()
                                 viewModel.onEvent(CameraEvent.ToggleGridOverlay)
                             },
+                            onToggleDocumentOverlay = {
+                                haptic.performLightTap()
+                                viewModel.onEvent(CameraEvent.ToggleDocumentOverlay)
+                            },
                             onFlipCamera = {
                                 haptic.performLightTap()
                                 viewModel.onEvent(CameraEvent.FlipCamera)
+                            },
+                            onShowResolutionDialog = {
+                                haptic.performLightTap()
+                                viewModel.onEvent(CameraEvent.ShowResolutionDialog)
                             }
                         )
 
@@ -253,6 +311,20 @@ fun CameraScreen(
                 ) {
                     Text(error)
                 }
+            }
+
+            // Resolution selection dialog
+            if (uiState.showResolutionDialog) {
+                ResolutionSelectionDialog(
+                    currentResolution = uiState.resolution,
+                    onResolutionSelected = { resolution ->
+                        haptic.performLightTap()
+                        viewModel.onEvent(CameraEvent.SetResolution(resolution))
+                    },
+                    onDismiss = {
+                        viewModel.onEvent(CameraEvent.DismissResolutionDialog)
+                    }
+                )
             }
         }
     }
@@ -436,16 +508,38 @@ fun CameraTopControls(
     modifier: Modifier = Modifier,
     zoomRatio: Float,
     showGridOverlay: Boolean,
+    showDocumentOverlay: Boolean,
     cameraFacing: CameraFacing,
+    currentResolution: CameraResolution,
     onZoomChange: (Float) -> Unit,
     onToggleGrid: () -> Unit,
-    onFlipCamera: () -> Unit
+    onToggleDocumentOverlay: () -> Unit,
+    onFlipCamera: () -> Unit,
+    onShowResolutionDialog: () -> Unit
 ) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.End,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // Resolution button
+        FilledIconButton(
+            onClick = onShowResolutionDialog,
+            modifier = Modifier
+                .size(48.dp)
+                .semantics {
+                    contentDescription = "Change resolution. Current: ${currentResolution.getDisplayName()}"
+                },
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = "Resolution"
+            )
+        }
+
         // Camera flip button
         FilledIconButton(
             onClick = onFlipCamera,
@@ -491,6 +585,33 @@ fun CameraTopControls(
             )
         }
 
+        // Document overlay toggle button
+        FilledIconButton(
+            onClick = onToggleDocumentOverlay,
+            modifier = Modifier
+                .size(48.dp)
+                .semantics {
+                    contentDescription = if (showDocumentOverlay) "Hide document overlay" else "Show document overlay"
+                },
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = if (showDocumentOverlay) {
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
+                } else {
+                    MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                }
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Default.CropFree,
+                contentDescription = "Document Detection",
+                tint = if (showDocumentOverlay) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
+            )
+        }
+
         // Zoom indicator and slider
         if (zoomRatio > 1.01f) {
             Surface(
@@ -513,6 +634,232 @@ fun CameraTopControls(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun LowLightWarning(
+    modifier: Modifier = Modifier,
+    condition: LowLightDetector.LightingCondition,
+    onDismiss: () -> Unit,
+    onEnableFlash: () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth(0.9f)
+            .semantics {
+                contentDescription = when (condition) {
+                    LowLightDetector.LightingCondition.VERY_LOW ->
+                        "Very low light detected. Enable flash for better results."
+                    LowLightDetector.LightingCondition.LOW ->
+                        "Low light detected. Consider enabling flash."
+                    else -> ""
+                }
+            },
+        color = when (condition) {
+            LowLightDetector.LightingCondition.VERY_LOW ->
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.95f)
+            LowLightDetector.LightingCondition.LOW ->
+                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.95f)
+            else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+        },
+        shape = MaterialTheme.shapes.medium,
+        tonalElevation = 4.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = when (condition) {
+                    LowLightDetector.LightingCondition.VERY_LOW -> Icons.Default.Warning
+                    LowLightDetector.LightingCondition.LOW -> Icons.Default.Lightbulb
+                    else -> Icons.Default.Info
+                },
+                contentDescription = null,
+                tint = when (condition) {
+                    LowLightDetector.LightingCondition.VERY_LOW ->
+                        MaterialTheme.colorScheme.onErrorContainer
+                    LowLightDetector.LightingCondition.LOW ->
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    else -> MaterialTheme.colorScheme.onSurface
+                }
+            )
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = when (condition) {
+                        LowLightDetector.LightingCondition.VERY_LOW -> "Very Low Light"
+                        LowLightDetector.LightingCondition.LOW -> "Low Light"
+                        else -> "Lighting OK"
+                    },
+                    style = MaterialTheme.typography.labelLarge,
+                    color = when (condition) {
+                        LowLightDetector.LightingCondition.VERY_LOW ->
+                            MaterialTheme.colorScheme.onErrorContainer
+                        LowLightDetector.LightingCondition.LOW ->
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+                )
+                Text(
+                    text = when (condition) {
+                        LowLightDetector.LightingCondition.VERY_LOW ->
+                            "Enable flash for better results"
+                        LowLightDetector.LightingCondition.LOW ->
+                            "Consider enabling flash"
+                        else -> ""
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = when (condition) {
+                        LowLightDetector.LightingCondition.VERY_LOW ->
+                            MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                        LowLightDetector.LightingCondition.LOW ->
+                            MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    }
+                )
+            }
+
+            // Flash button
+            IconButton(
+                onClick = onEnableFlash,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FlashOn,
+                    contentDescription = "Enable flash",
+                    tint = when (condition) {
+                        LowLightDetector.LightingCondition.VERY_LOW ->
+                            MaterialTheme.colorScheme.onErrorContainer
+                        LowLightDetector.LightingCondition.LOW ->
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+                )
+            }
+
+            // Dismiss button
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Dismiss warning",
+                    tint = when (condition) {
+                        LowLightDetector.LightingCondition.VERY_LOW ->
+                            MaterialTheme.colorScheme.onErrorContainer
+                        LowLightDetector.LightingCondition.LOW ->
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ResolutionSelectionDialog(
+    currentResolution: CameraResolution,
+    onResolutionSelected: (CameraResolution) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Select Resolution",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Choose camera resolution for capturing images",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                CameraResolution.entries.forEach { resolution ->
+                    ResolutionOption(
+                        resolution = resolution,
+                        isSelected = resolution == currentResolution,
+                        onClick = { onResolutionSelected(resolution) }
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun ResolutionOption(
+    resolution: CameraResolution,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = if (isSelected) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
+        tonalElevation = if (isSelected) 2.dp else 0.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = resolution.getDisplayName(),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
+                )
+                Text(
+                    text = "${resolution.width} × ${resolution.height}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+            }
+
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Selected",
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             }
         }
     }
