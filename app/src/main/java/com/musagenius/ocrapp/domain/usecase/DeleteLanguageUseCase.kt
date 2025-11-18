@@ -15,6 +15,14 @@ class DeleteLanguageUseCase @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     /**
+     * Get tessdata directory, returns null if external files dir is unavailable
+     */
+    private fun tessdataDir(): File? {
+        val externalDir = context.getExternalFilesDir(null) ?: return null
+        return File(externalDir, "tessdata")
+    }
+
+    /**
      * Delete a language data file
      * @param languageCode The language code to delete (e.g., "eng", "fra")
      * @return Result indicating success or failure
@@ -29,19 +37,12 @@ class DeleteLanguageUseCase @Inject constructor(
             }
 
             // Get tessdata directory path
-            val tessdataPath = File(context.getExternalFilesDir(null), "tessdata")
-            val languageFile = File(tessdataPath, "$languageCode.traineddata")
-
-            // Check if file exists
-            if (!languageFile.exists()) {
-                return@withContext Result.failure(
-                    IllegalArgumentException("Language file not found: $languageCode")
+            val tessdataPath = tessdataDir()
+                ?: return@withContext Result.failure(
+                    IllegalStateException("External files directory not available")
                 )
-            }
 
-            // Delete the file
-            val deleted = languageFile.delete()
-
+            val deleted = deleteLanguageFileInternal(tessdataPath, languageCode)
             if (deleted) {
                 Result.success(Unit)
             } else {
@@ -53,24 +54,40 @@ class DeleteLanguageUseCase @Inject constructor(
     }
 
     /**
+     * Delete a language file (non-suspending, assumes caller is on IO dispatcher)
+     * @return true if deleted, false if not found or failed
+     */
+    private fun deleteLanguageFileInternal(tessdataPath: File, languageCode: String): Boolean {
+        val languageFile = File(tessdataPath, "$languageCode.traineddata")
+
+        // Check if file exists
+        if (!languageFile.exists()) {
+            throw IllegalArgumentException("Language file not found: $languageCode")
+        }
+
+        // Delete the file
+        return languageFile.delete()
+    }
+
+    /**
      * Delete multiple language data files
      * @param languageCodes List of language codes to delete
      * @return Result containing map of language codes to deletion status (true if deleted)
      */
-    suspend fun deleteMultiple(languageCodes: List<String>): Result<Map<String, Boolean>> =
-        withContext(Dispatchers.IO) {
-            try {
-                val results = languageCodes.associateWith { code ->
-                    invoke(code).fold(
-                        onSuccess = { true },
-                        onFailure = { false }
-                    )
-                }
-                Result.success(results)
-            } catch (e: Exception) {
-                Result.failure(e)
+    suspend fun deleteMultiple(languageCodes: List<String>): Result<Map<String, Boolean>> {
+        return try {
+            // Let invoke() manage the IO dispatcher to avoid nested contexts
+            val results = languageCodes.associateWith { code ->
+                invoke(code).fold(
+                    onSuccess = { true },
+                    onFailure = { false }
+                )
             }
+            Result.success(results)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
+    }
 
     /**
      * Calculate total size of all language files
@@ -78,7 +95,8 @@ class DeleteLanguageUseCase @Inject constructor(
      */
     suspend fun getTotalLanguageFilesSize(): Result<Long> = withContext(Dispatchers.IO) {
         try {
-            val tessdataPath = File(context.getExternalFilesDir(null), "tessdata")
+            val tessdataPath = tessdataDir()
+                ?: return@withContext Result.success(0L)
 
             if (!tessdataPath.exists()) {
                 return@withContext Result.success(0L)
@@ -101,7 +119,9 @@ class DeleteLanguageUseCase @Inject constructor(
      */
     suspend fun getLanguageFileSize(languageCode: String): Result<Long> = withContext(Dispatchers.IO) {
         try {
-            val tessdataPath = File(context.getExternalFilesDir(null), "tessdata")
+            val tessdataPath = tessdataDir()
+                ?: return@withContext Result.success(0L)
+
             val languageFile = File(tessdataPath, "$languageCode.traineddata")
 
             val size = if (languageFile.exists()) languageFile.length() else 0L
