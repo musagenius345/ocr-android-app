@@ -19,6 +19,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.musagenius.ocrapp.presentation.navigation.Screen
 import com.musagenius.ocrapp.presentation.ui.camera.CameraScreen
+import com.musagenius.ocrapp.presentation.ui.detail.ScanDetailScreen
 import com.musagenius.ocrapp.presentation.ui.editor.ImageEditorScreen
 import com.musagenius.ocrapp.presentation.ui.history.HistoryScreen
 import com.musagenius.ocrapp.presentation.ui.ocr.OCRResultScreen
@@ -134,9 +135,21 @@ fun OCRAppNavigation() {
         composable(Screen.History.route) {
             HistoryScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onScanClick = { imageUri ->
-                    navController.navigate(Screen.Results.createRoute(imageUri.toString()))
+                onScanClick = { scanId ->
+                    navController.navigate(Screen.ScanDetail.createRoute(scanId))
                 }
+            )
+        }
+
+        // Scan Detail screen
+        composable(
+            route = Screen.ScanDetail.route,
+            arguments = listOf(
+                navArgument("scanId") { type = NavType.StringType }
+            )
+        ) {
+            ScanDetailScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

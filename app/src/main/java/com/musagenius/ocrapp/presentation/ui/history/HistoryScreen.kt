@@ -77,7 +77,7 @@ import java.util.Locale
 @Composable
 fun HistoryScreen(
     onNavigateBack: () -> Unit,
-    onScanClick: (Uri) -> Unit,
+    onScanClick: (Long) -> Unit,
     viewModel: HistoryViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -383,7 +383,7 @@ private fun ScansList(
             ) {
                 ScanCard(
                     scan = scan,
-                    onClick = { onScanClick(scan.imageUri) }
+                    onClick = { onScanClick(scan.id) }
                 )
             }
         }
