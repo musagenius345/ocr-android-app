@@ -52,6 +52,11 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = false
+        aidl = false
+        renderScript = false
+        resValues = false
+        shaders = false
     }
 
     packaging {
