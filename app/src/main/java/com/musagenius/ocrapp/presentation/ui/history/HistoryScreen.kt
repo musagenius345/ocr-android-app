@@ -533,8 +533,14 @@ private fun formatTimestamp(timestamp: java.util.Date): String {
 
     return when {
         diffHours < 1 -> "Just now"
-        diffHours < 24 -> "$diffHours hours ago"
-        diffDays < 7 -> "$diffDays days ago"
+        diffHours < 24 -> {
+            val hourWord = if (diffHours == 1L) "hour" else "hours"
+            "$diffHours $hourWord ago"
+        }
+        diffDays < 7 -> {
+            val dayWord = if (diffDays == 1L) "day" else "days"
+            "$diffDays $dayWord ago"
+        }
         else -> SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(timestamp)
     }
 }

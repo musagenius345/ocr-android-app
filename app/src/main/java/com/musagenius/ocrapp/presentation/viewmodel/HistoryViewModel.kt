@@ -57,9 +57,13 @@ class HistoryViewModel @Inject constructor(
             getAllScansUseCase().collect { result ->
                 when (result) {
                     is Result.Success -> {
+                        // Extract unique languages for filter options
+                        val languages = result.data.map { it.language }.distinct().sorted()
+
                         _state.update {
                             it.copy(
                                 scans = result.data,
+                                availableLanguages = languages,
                                 isLoading = false,
                                 error = null
                             )
@@ -90,9 +94,13 @@ class HistoryViewModel @Inject constructor(
         // Cancel previous search job
         searchJob?.cancel()
 
-        // If query is empty, load all scans
+        // If query is empty, load scans (with filters if active)
         if (query.isBlank()) {
-            loadScans()
+            if (_state.value.filterOptions.isActive()) {
+                loadFilteredScans()
+            } else {
+                loadScans()
+            }
             return
         }
 

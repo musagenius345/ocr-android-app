@@ -88,5 +88,44 @@ enum class DateRangeOption(val displayName: String) {
         fun fromDisplayName(name: String): DateRangeOption? {
             return entries.find { it.displayName == name }
         }
+
+        /**
+         * Try to match a DateRange to a predefined DateRangeOption
+         * Returns the matching option, CUSTOM if there's a range but no match, or ALL_TIME if null
+         */
+        fun fromDateRange(dateRange: DateRange?): DateRangeOption {
+            if (dateRange == null) return ALL_TIME
+
+            val now = System.currentTimeMillis()
+            val dayInMillis = 24 * 60 * 60 * 1000L
+
+            // Check if end date is approximately "now" (within 1 hour)
+            if (kotlin.math.abs(dateRange.endDate - now) > 60 * 60 * 1000) {
+                return CUSTOM
+            }
+
+            // Calculate days difference
+            val daysDiff = ((now - dateRange.startDate) / dayInMillis).toInt()
+
+            return when {
+                // TODAY: start date should be today at midnight
+                daysDiff == 0 -> {
+                    val cal = java.util.Calendar.getInstance()
+                    cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                    cal.set(java.util.Calendar.MINUTE, 0)
+                    cal.set(java.util.Calendar.SECOND, 0)
+                    cal.set(java.util.Calendar.MILLISECOND, 0)
+                    val todayStart = cal.timeInMillis
+                    if (kotlin.math.abs(dateRange.startDate - todayStart) < dayInMillis) TODAY else CUSTOM
+                }
+                // LAST_7_DAYS: approximately 7 days ago
+                daysDiff in 6..8 -> LAST_7_DAYS
+                // LAST_30_DAYS: approximately 30 days ago
+                daysDiff in 28..32 -> LAST_30_DAYS
+                // LAST_90_DAYS: approximately 90 days ago
+                daysDiff in 88..92 -> LAST_90_DAYS
+                else -> CUSTOM
+            }
+        }
     }
 }

@@ -17,6 +17,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
@@ -55,7 +56,7 @@ fun FilterBottomSheet(
     sheetState: SheetState = androidx.compose.material3.rememberModalBottomSheetState()
 ) {
     var selectedLanguage by remember { mutableStateOf(currentFilters.language) }
-    var selectedDateRange by remember { mutableStateOf<DateRangeOption>(DateRangeOption.ALL_TIME) }
+    var selectedDateRange by remember { mutableStateOf(DateRangeOption.fromDateRange(currentFilters.dateRange)) }
     var minConfidence by remember { mutableFloatStateOf(currentFilters.minConfidence ?: 0f) }
     var favoritesOnly by remember { mutableStateOf(currentFilters.favoritesOnly) }
     var showLanguageDropdown by remember { mutableStateOf(false) }
