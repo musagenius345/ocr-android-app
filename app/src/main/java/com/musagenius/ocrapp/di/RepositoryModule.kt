@@ -1,7 +1,9 @@
 package com.musagenius.ocrapp.di
 
+import com.musagenius.ocrapp.data.repository.LanguageRepositoryImpl
 import com.musagenius.ocrapp.data.repository.PreferencesRepositoryImpl
 import com.musagenius.ocrapp.data.repository.ScanRepositoryImpl
+import com.musagenius.ocrapp.domain.repository.LanguageRepository
 import com.musagenius.ocrapp.domain.repository.PreferencesRepository
 import com.musagenius.ocrapp.domain.repository.ScanRepository
 import dagger.Binds
@@ -29,4 +31,10 @@ abstract class RepositoryModule {
     abstract fun bindPreferencesRepository(
         preferencesRepositoryImpl: PreferencesRepositoryImpl
     ): PreferencesRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindLanguageRepository(
+        languageRepositoryImpl: LanguageRepositoryImpl
+    ): LanguageRepository
 }
