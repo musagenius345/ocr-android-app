@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import com.musagenius.ocrapp.data.camera.DocumentEdgeDetector
+import com.musagenius.ocrapp.data.camera.DocumentEdgeDetector.Point
 
 /**
  * Overlay that draws detected document edges on camera preview
@@ -127,32 +128,98 @@ private fun DrawScope.drawCornerMarkers(
     val strokeWidth = 6f
     val color = Color.White.copy(alpha = alpha)
 
-    listOf(
+    // Draw each corner marker pointing inward toward the document
+
+    // Top-left: extends right and down
+    drawCornerMarker(
         corners.topLeft,
+        scaleX,
+        scaleY,
+        cornerSize,
+        strokeWidth,
+        color,
+        xDirection = 1f,
+        yDirection = 1f
+    )
+
+    // Top-right: extends left and down
+    drawCornerMarker(
         corners.topRight,
+        scaleX,
+        scaleY,
+        cornerSize,
+        strokeWidth,
+        color,
+        xDirection = -1f,
+        yDirection = 1f
+    )
+
+    // Bottom-right: extends left and up
+    drawCornerMarker(
         corners.bottomRight,
-        corners.bottomLeft
-    ).forEach { corner ->
-        val x = corner.x * scaleX
-        val y = corner.y * scaleY
+        scaleX,
+        scaleY,
+        cornerSize,
+        strokeWidth,
+        color,
+        xDirection = -1f,
+        yDirection = -1f
+    )
 
-        // Draw L-shaped corner marker
-        drawRoundRect(
-            color = color,
-            topLeft = Offset(x - strokeWidth / 2, y - strokeWidth / 2),
-            size = Size(cornerSize, strokeWidth),
-            cornerRadius = CornerRadius(strokeWidth / 2, strokeWidth / 2),
-            style = Stroke(width = strokeWidth)
-        )
+    // Bottom-left: extends right and up
+    drawCornerMarker(
+        corners.bottomLeft,
+        scaleX,
+        scaleY,
+        cornerSize,
+        strokeWidth,
+        color,
+        xDirection = 1f,
+        yDirection = -1f
+    )
+}
 
-        drawRoundRect(
-            color = color,
-            topLeft = Offset(x - strokeWidth / 2, y - strokeWidth / 2),
-            size = Size(strokeWidth, cornerSize),
-            cornerRadius = CornerRadius(strokeWidth / 2, strokeWidth / 2),
-            style = Stroke(width = strokeWidth)
-        )
+/**
+ * Draw a single corner marker with specified direction
+ */
+private fun DrawScope.drawCornerMarker(
+    corner: Point,
+    scaleX: Float,
+    scaleY: Float,
+    cornerSize: Float,
+    strokeWidth: Float,
+    color: Color,
+    xDirection: Float,
+    yDirection: Float
+) {
+    val x = corner.x * scaleX
+    val y = corner.y * scaleY
+
+    // Horizontal line
+    val horizontalStart = if (xDirection > 0) {
+        Offset(x, y - strokeWidth / 2)
+    } else {
+        Offset(x - cornerSize, y - strokeWidth / 2)
     }
+    drawRoundRect(
+        color = color,
+        topLeft = horizontalStart,
+        size = Size(cornerSize, strokeWidth),
+        cornerRadius = CornerRadius(strokeWidth / 2, strokeWidth / 2)
+    )
+
+    // Vertical line
+    val verticalStart = if (yDirection > 0) {
+        Offset(x - strokeWidth / 2, y)
+    } else {
+        Offset(x - strokeWidth / 2, y - cornerSize)
+    }
+    drawRoundRect(
+        color = color,
+        topLeft = verticalStart,
+        size = Size(strokeWidth, cornerSize),
+        cornerRadius = CornerRadius(strokeWidth / 2, strokeWidth / 2)
+    )
 }
 
 /**

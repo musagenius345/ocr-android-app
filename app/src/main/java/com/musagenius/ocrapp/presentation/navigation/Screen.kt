@@ -19,6 +19,12 @@ sealed class Screen(val route: String) {
             return "results/$encodedUri"
         }
     }
+    data object ScanDetail : Screen("scan_detail/{scanId}") {
+        fun createRoute(scanId: Long): String {
+            return "scan_detail/$scanId"
+        }
+    }
     data object History : Screen("history")
     data object Settings : Screen("settings")
+    data object LanguageManagement : Screen("language_management")
 }

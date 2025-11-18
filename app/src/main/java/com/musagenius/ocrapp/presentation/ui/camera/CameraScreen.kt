@@ -45,6 +45,8 @@ import java.util.Locale
 fun CameraScreen(
     onImageCaptured: (Uri) -> Unit,
     onGalleryImageSelected: (Uri) -> Unit = onImageCaptured,
+    onNavigateToHistory: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     onNavigateBack: () -> Unit,
     viewModel: CameraViewModel = hiltViewModel()
 ) {
@@ -124,6 +126,7 @@ fun CameraScreen(
         topBar = {
             CameraTopBar(
                 onNavigateBack = onNavigateBack,
+                onNavigateToHistory = onNavigateToHistory,
                 flashMode = uiState.flashMode,
                 onToggleFlash = { viewModel.onEvent(CameraEvent.ToggleFlash) }
             )
@@ -333,6 +336,7 @@ fun CameraScreen(
 @Composable
 fun CameraTopBar(
     onNavigateBack: () -> Unit,
+    onNavigateToHistory: () -> Unit,
     flashMode: FlashMode,
     onToggleFlash: () -> Unit
 ) {
@@ -357,6 +361,43 @@ fun CameraTopBar(
             }
         },
         actions = {
+            // Settings button
+            IconButton(
+                onClick = {
+                    haptic.performLightTap()
+                    onNavigateToSettings()
+                },
+                modifier = Modifier
+                    .size(48.dp)
+                    .semantics {
+                        contentDescription = "Open settings"
+                    }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Settings"
+                )
+            }
+
+            // History button
+            IconButton(
+                onClick = {
+                    haptic.performLightTap()
+                    onNavigateToHistory()
+                },
+                modifier = Modifier
+                    .size(48.dp)
+                    .semantics {
+                        contentDescription = "View scan history"
+                    }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = "History"
+                )
+            }
+
+            // Flash toggle button
             IconButton(
                 onClick = {
                     haptic.performLightTap()

@@ -5,11 +5,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
@@ -17,11 +21,17 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.musagenius.ocrapp.domain.model.AppTheme
 import com.musagenius.ocrapp.presentation.navigation.Screen
 import com.musagenius.ocrapp.presentation.ui.camera.CameraScreen
+import com.musagenius.ocrapp.presentation.ui.detail.ScanDetailScreen
 import com.musagenius.ocrapp.presentation.ui.editor.ImageEditorScreen
+import com.musagenius.ocrapp.presentation.ui.history.HistoryScreen
+import com.musagenius.ocrapp.presentation.ui.language.LanguageManagementScreen
 import com.musagenius.ocrapp.presentation.ui.ocr.OCRResultScreen
+import com.musagenius.ocrapp.presentation.ui.settings.SettingsScreen
 import com.musagenius.ocrapp.presentation.ui.theme.OCRAppTheme
+import com.musagenius.ocrapp.presentation.viewmodel.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -30,11 +40,25 @@ import dagger.hilt.android.AndroidEntryPoint
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private val settingsViewModel: SettingsViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            OCRAppTheme {
+            val preferences by settingsViewModel.preferences.collectAsState()
+            val systemInDarkTheme = isSystemInDarkTheme()
+
+            val darkTheme = when (preferences.theme) {
+                AppTheme.LIGHT -> false
+                AppTheme.DARK -> true
+                AppTheme.SYSTEM -> systemInDarkTheme
+            }
+
+            OCRAppTheme(
+                darkTheme = darkTheme,
+                dynamicColor = preferences.useDynamicColor
+            ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -64,6 +88,12 @@ fun OCRAppNavigation() {
                 onGalleryImageSelected = { imageUri ->
                     // Navigate to image editor for gallery images
                     navController.navigate(Screen.ImageEditor.createRoute(imageUri.toString()))
+                },
+                onNavigateToHistory = {
+                    navController.navigate(Screen.History.route)
+                },
+                onNavigateToSettings = {
+                    navController.navigate(Screen.Settings.route)
                 },
                 onNavigateBack = {
                     navController.navigateUp()
@@ -126,20 +156,41 @@ fun OCRAppNavigation() {
             )
         }
 
-        // History screen (placeholder for Phase 4)
+        // History screen
         composable(Screen.History.route) {
-            PlaceholderScreen(
-                title = "History Screen",
-                subtitle = "Coming in Phase 4",
+            HistoryScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onScanClick = { scanId ->
+                    navController.navigate(Screen.ScanDetail.createRoute(scanId))
+                }
+            )
+        }
+
+        // Scan Detail screen
+        composable(
+            route = Screen.ScanDetail.route,
+            arguments = listOf(
+                navArgument("scanId") { type = NavType.StringType }
+            )
+        ) {
+            ScanDetailScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
 
-        // Settings screen (placeholder for Phase 5)
+        // Settings screen
         composable(Screen.Settings.route) {
-            PlaceholderScreen(
-                title = "Settings Screen",
-                subtitle = "Coming in Phase 5",
+            SettingsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToLanguageManagement = {
+                    navController.navigate(Screen.LanguageManagement.route)
+                }
+            )
+        }
+
+        // Language Management screen
+        composable(Screen.LanguageManagement.route) {
+            LanguageManagementScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
