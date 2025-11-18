@@ -347,6 +347,6 @@ class OCRServiceImpl @Inject constructor(
      * Get Tesseract version
      */
     override fun getVersion(): String {
-        return TessBaseAPI.version()
+        return tessBaseAPI?.getVersion() ?: "Unknown"
     }
 }
