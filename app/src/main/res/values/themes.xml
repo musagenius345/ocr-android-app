@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Base theme uses Material 3 DayNight theme for proper system UI handling -->
-    <style name="Theme.OCRApp" parent="android:Theme.Material3.DayNight.NoActionBar">
+    <!-- Base theme for Compose app - Material 3 theming is handled in Compose -->
+    <style name="Theme.OCRApp" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>

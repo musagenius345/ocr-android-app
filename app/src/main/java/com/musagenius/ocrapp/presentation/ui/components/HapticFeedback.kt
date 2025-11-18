@@ -37,6 +37,20 @@ class HapticFeedbackManager(private val context: Context) {
     }
 
     /**
+     * Medium tap feedback (for important actions)
+     */
+    fun performMediumTap() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            vibrator?.vibrate(
+                VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK)
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator?.vibrate(25)
+        }
+    }
+
+    /**
      * Medium tap feedback (for capture)
      */
     fun performCaptureFeedback() {

@@ -32,7 +32,7 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
 import com.musagenius.ocrapp.data.camera.LowLightDetector
-import com.musagenius.ocrapp.presentation.ui.components.DocumentOverlay
+import com.musagenius.ocrapp.presentation.ui.camera.DocumentOverlay
 import com.musagenius.ocrapp.presentation.ui.components.GridOverlay
 import com.musagenius.ocrapp.presentation.ui.components.ShutterAnimation
 import com.musagenius.ocrapp.presentation.ui.components.rememberHapticFeedback
@@ -130,6 +130,7 @@ fun CameraScreen(
             CameraTopBar(
                 onNavigateBack = onNavigateBack,
                 onNavigateToHistory = onNavigateToHistory,
+                onNavigateToSettings = onNavigateToSettings,
                 flashMode = uiState.flashMode,
                 onToggleFlash = { viewModel.onEvent(CameraEvent.ToggleFlash) }
             )
@@ -343,6 +344,7 @@ fun CameraScreen(
 fun CameraTopBar(
     onNavigateBack: () -> Unit,
     onNavigateToHistory: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     flashMode: FlashMode,
     onToggleFlash: () -> Unit
 ) {
@@ -459,8 +461,11 @@ fun CameraControls(
 
         // Capture button
         FloatingActionButton(
-            onClick = onCaptureClick,
-            enabled = !isProcessing,
+            onClick = {
+                if (!isProcessing) {
+                    onCaptureClick()
+                }
+            },
             modifier = Modifier
                 .size(72.dp) // Large, easy to tap
                 .semantics {
@@ -469,12 +474,17 @@ fun CameraControls(
                     } else {
                         "Capture image for text recognition"
                     }
-                }
+                },
+            containerColor = if (isProcessing) {
+                MaterialTheme.colorScheme.surfaceVariant
+            } else {
+                MaterialTheme.colorScheme.primaryContainer
+            }
         ) {
             if (isProcessing) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(32.dp),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
                 Icon(

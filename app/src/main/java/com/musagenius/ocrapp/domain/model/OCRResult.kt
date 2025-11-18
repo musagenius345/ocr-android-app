@@ -59,7 +59,7 @@ data class OCRResult(
 /**
  * Image quality assessment result
  */
-data class ImageQuality(
+data class ImageQualityAssessment(
     val isAcceptable: Boolean,
     val blurScore: Float, // 0.0 (blurry) to 1.0 (sharp)
     val brightnessScore: Float, // 0.0 (too dark) to 1.0 (good)

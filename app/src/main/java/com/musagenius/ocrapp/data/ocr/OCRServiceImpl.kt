@@ -102,7 +102,7 @@ class OCRServiceImpl @Inject constructor(
     /**
      * Initialize Tesseract with the specified configuration
      */
-    override suspend fun initialize(config: OCRConfig = OCRConfig()): Result<Unit> = tessMutex.withLock {
+    override suspend fun initialize(config: OCRConfig): Result<Unit> = tessMutex.withLock {
         initializeInternal(config)
     }
 
@@ -111,7 +111,7 @@ class OCRServiceImpl @Inject constructor(
      */
     override suspend fun recognizeText(
         bitmap: Bitmap,
-        config: OCRConfig = OCRConfig()
+        config: OCRConfig
     ): Result<OCRResult> = tessMutex.withLock {
         withContext(Dispatchers.Default) {
             try {

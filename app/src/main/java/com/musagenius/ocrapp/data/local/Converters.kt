@@ -30,8 +30,8 @@ class Converters {
      * Convert String to Uri
      */
     @TypeConverter
-    fun fromString(value: String?): Uri? {
-        return value?.let { Uri.parse(it) }
+    fun stringToUri(value: String?): Uri? {
+        return if (value == null) null else Uri.parse(value)
     }
 
     /**

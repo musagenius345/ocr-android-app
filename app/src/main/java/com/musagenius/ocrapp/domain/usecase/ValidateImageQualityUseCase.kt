@@ -2,7 +2,7 @@ package com.musagenius.ocrapp.domain.usecase
 
 import android.graphics.Bitmap
 import com.musagenius.ocrapp.data.ocr.ImagePreprocessor
-import com.musagenius.ocrapp.domain.model.ImageQuality
+import com.musagenius.ocrapp.domain.model.ImageQualityAssessment
 import com.musagenius.ocrapp.domain.model.Result
 import javax.inject.Inject
 
@@ -17,7 +17,7 @@ class ValidateImageQualityUseCase @Inject constructor(
      * @param bitmap The image to validate
      * @return Result containing image quality assessment
      */
-    suspend operator fun invoke(bitmap: Bitmap): Result<ImageQuality> {
+    suspend operator fun invoke(bitmap: Bitmap): Result<ImageQualityAssessment> {
         return try {
             val quality = imagePreprocessor.assessImageQuality(bitmap)
             Result.success(quality)

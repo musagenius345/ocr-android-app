@@ -2,6 +2,8 @@ package com.musagenius.ocrapp.di
 
 import android.content.Context
 import com.musagenius.ocrapp.data.camera.CameraManager
+import com.musagenius.ocrapp.data.camera.DocumentEdgeDetector
+import com.musagenius.ocrapp.data.camera.LowLightDetector
 import com.musagenius.ocrapp.data.utils.ImageCompressor
 import com.musagenius.ocrapp.data.utils.StorageManager
 import dagger.Module
@@ -24,10 +26,24 @@ object CameraManagerModule {
 
     @Provides
     @ActivityRetainedScoped
+    fun provideDocumentEdgeDetector(): DocumentEdgeDetector {
+        return DocumentEdgeDetector()
+    }
+
+    @Provides
+    @ActivityRetainedScoped
+    fun provideLowLightDetector(): LowLightDetector {
+        return LowLightDetector()
+    }
+
+    @Provides
+    @ActivityRetainedScoped
     fun provideCameraManager(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        documentEdgeDetector: DocumentEdgeDetector,
+        lowLightDetector: LowLightDetector
     ): CameraManager {
-        return CameraManager(context)
+        return CameraManager(context, documentEdgeDetector, lowLightDetector)
     }
 }
 

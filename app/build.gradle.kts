@@ -52,7 +52,7 @@ android {
 
     buildFeatures {
         compose = true
-        buildConfig = false
+        buildConfig = true
         aidl = false
         renderScript = false
         resValues = false
@@ -97,7 +97,7 @@ dependencies {
     implementation("androidx.camera:camera-view:$cameraxVersion")
 
     // Room Database
-    val roomVersion = "2.6.1"
+    val roomVersion = "2.7.0-alpha12"
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
     ksp("androidx.room:room-compiler:$roomVersion")
@@ -124,6 +124,9 @@ dependencies {
 
     // Image loading (Coil)
     implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // ExifInterface for image metadata
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

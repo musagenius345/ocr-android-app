@@ -4,7 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Matrix
 import androidx.core.graphics.createBitmap
-import com.musagenius.ocrapp.domain.model.ImageQuality
+import com.musagenius.ocrapp.domain.model.ImageQualityAssessment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -124,7 +124,7 @@ class ImagePreprocessor @Inject constructor() {
     /**
      * Assess image quality for OCR
      */
-    suspend fun assessImageQuality(bitmap: Bitmap): ImageQuality = withContext(Dispatchers.Default) {
+    suspend fun assessImageQuality(bitmap: Bitmap): ImageQualityAssessment = withContext(Dispatchers.Default) {
         val blurScore = calculateSharpness(bitmap)
         val brightnessScore = calculateBrightness(bitmap)
         val resolution = bitmap.width * bitmap.height
@@ -149,7 +149,7 @@ class ImagePreprocessor @Inject constructor() {
 
         val isAcceptable = blurScore >= 0.3f && brightnessScore in 0.2f..0.95f
 
-        ImageQuality(
+        ImageQualityAssessment(
             isAcceptable = isAcceptable,
             blurScore = blurScore,
             brightnessScore = brightnessScore,

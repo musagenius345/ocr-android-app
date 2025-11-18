@@ -12,6 +12,8 @@ import com.musagenius.ocrapp.data.camera.LowLightDetector
 import com.musagenius.ocrapp.data.utils.ImageCompressor
 import com.musagenius.ocrapp.data.utils.StorageManager
 import com.musagenius.ocrapp.presentation.ui.camera.CameraEvent
+import com.musagenius.ocrapp.presentation.ui.camera.CameraFacing
+import com.musagenius.ocrapp.presentation.ui.camera.CameraResolution
 import com.musagenius.ocrapp.presentation.ui.camera.CameraUiState
 import com.musagenius.ocrapp.presentation.ui.camera.FlashMode
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -374,7 +376,7 @@ class CameraViewModel @Inject constructor(
             }
         }
 
-        cameraManager.getExposureState()?.value?.let { exposureState ->
+        cameraManager.getExposureState()?.let { exposureState ->
             _uiState.update {
                 it.copy(
                     minExposure = exposureState.exposureCompensationRange.lower,
