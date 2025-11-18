@@ -35,6 +35,10 @@ class CameraViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CameraUiState())
     val uiState: StateFlow<CameraUiState> = _uiState.asStateFlow()
 
+    // Store references for camera restart operations
+    private var lifecycleOwner: LifecycleOwner? = null
+    private var previewView: PreviewView? = null
+
     companion object {
         private const val TAG = "CameraViewModel"
     }
@@ -75,6 +79,10 @@ class CameraViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             try {
+                // Store references for camera restart operations (e.g., resolution change)
+                this@CameraViewModel.lifecycleOwner = lifecycleOwner
+                this@CameraViewModel.previewView = previewView
+
                 _uiState.update { it.copy(isLoading = true, error = null) }
 
                 cameraManager.startCamera(
@@ -406,6 +414,11 @@ class CameraViewModel @Inject constructor(
         cameraManager.clearEdgeDetectionCallback()
         cameraManager.clearLightingConditionCallback()
         cameraManager.release()
+
+        // Clear references to avoid memory leaks
+        lifecycleOwner = null
+        previewView = null
+
         Log.d(TAG, "ViewModel cleared, camera released")
     }
 }
