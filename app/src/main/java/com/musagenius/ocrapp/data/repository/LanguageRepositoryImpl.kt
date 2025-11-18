@@ -4,6 +4,7 @@ import android.content.Context
 import com.musagenius.ocrapp.domain.model.Result
 import com.musagenius.ocrapp.domain.model.TesseractLanguage
 import com.musagenius.ocrapp.domain.repository.LanguageRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -119,6 +120,9 @@ class LanguageRepositoryImpl @Inject constructor(
                     tempFile.delete()
                 }
             }
+        } catch (e: CancellationException) {
+            // Rethrow CancellationException to preserve cooperative cancellation
+            throw e
         } catch (e: Exception) {
             emit(Result.Error(e))
         }

@@ -166,7 +166,7 @@ fun SettingsScreen(
                     title = "Auto-delete Days",
                     value = preferences.autoDeleteDays,
                     valueRange = 7f..365f,
-                    steps = 51,
+                    steps = 357, // 365 - 7 - 1 = 357 for daily precision
                     onValueChange = { viewModel.updateAutoDeleteDays(it.roundToInt()) }
                 )
             }
