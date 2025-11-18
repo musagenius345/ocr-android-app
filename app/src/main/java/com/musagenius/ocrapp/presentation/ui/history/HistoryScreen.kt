@@ -33,8 +33,9 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DismissDirection
-import androidx.compose.material3.DismissValue
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,10 +46,8 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.SwipeToDismiss
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberDismissState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -379,7 +378,7 @@ private fun ScansList(
             SwipeToDeleteItem(
                 scan = scan,
                 onDelete = { onDelete(scan) },
-                modifier = Modifier.animateItemPlacement()
+                modifier = Modifier.animateItem()
             ) {
                 ScanCard(
                     scan = scan,
@@ -401,9 +400,9 @@ private fun SwipeToDeleteItem(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    val dismissState = rememberDismissState(
+    val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = {
-            if (it == DismissValue.DismissedToStart) {
+            if (it == SwipeToDismissBoxValue.EndToStart) {
                 onDelete()
                 true
             } else {
@@ -412,11 +411,11 @@ private fun SwipeToDeleteItem(
         }
     )
 
-    SwipeToDismiss(
+    SwipeToDismissBox(
         state = dismissState,
         modifier = modifier,
-        directions = setOf(DismissDirection.EndToStart),
-        background = {
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -434,7 +433,7 @@ private fun SwipeToDeleteItem(
                 )
             }
         },
-        dismissContent = {
+        content = {
             content()
         }
     )
