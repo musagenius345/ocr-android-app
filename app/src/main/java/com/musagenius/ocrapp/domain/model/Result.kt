@@ -71,6 +71,19 @@ sealed class Result<out T> {
         return this
     }
 
+    /**
+     * Fold result into a single value
+     * Transforms success or error into a common type
+     */
+    inline fun <R> fold(
+        onSuccess: (T) -> R,
+        onFailure: (Exception) -> R
+    ): R = when (this) {
+        is Success -> onSuccess(data)
+        is Error -> onFailure(exception)
+        is Loading -> throw IllegalStateException("Cannot fold loading result")
+    }
+
     companion object {
         /**
          * Create success result
@@ -82,6 +95,12 @@ sealed class Result<out T> {
          */
         fun error(exception: Exception, message: String? = null): Result<Nothing> =
             Error(exception, message)
+
+        /**
+         * Create failure result (alias for error)
+         */
+        fun failure(exception: Exception, message: String? = null): Result<Nothing> =
+            error(exception, message)
 
         /**
          * Create loading result
