@@ -27,7 +27,9 @@ data class CameraUiState(
     val minExposure: Int = 0,
     val maxExposure: Int = 0,
     val lightingCondition: LowLightDetector.LightingCondition = LowLightDetector.LightingCondition.GOOD,
-    val showLowLightWarning: Boolean = true
+    val showLowLightWarning: Boolean = true,
+    val resolution: CameraResolution = CameraResolution.HD,
+    val showResolutionDialog: Boolean = false
 )
 
 /**
@@ -49,6 +51,29 @@ enum class CameraFacing {
             BACK -> "Back Camera"
             FRONT -> "Front Camera"
         }
+    }
+}
+
+/**
+ * Camera resolution options
+ */
+enum class CameraResolution(val width: Int, val height: Int) {
+    SD(720, 480),
+    HD(1280, 720),
+    FULL_HD(1920, 1080),
+    UHD_4K(3840, 2160);
+
+    fun getDisplayName(): String {
+        return when (this) {
+            SD -> "SD (480p)"
+            HD -> "HD (720p)"
+            FULL_HD -> "Full HD (1080p)"
+            UHD_4K -> "4K (2160p)"
+        }
+    }
+
+    fun getAspectRatio(): Float {
+        return width.toFloat() / height.toFloat()
     }
 }
 
@@ -103,4 +128,7 @@ sealed class CameraEvent {
     data class UpdatePreviewSize(val width: Float, val height: Float) : CameraEvent()
     data class UpdateLightingCondition(val condition: LowLightDetector.LightingCondition) : CameraEvent()
     data object DismissLowLightWarning : CameraEvent()
+    data object ShowResolutionDialog : CameraEvent()
+    data object DismissResolutionDialog : CameraEvent()
+    data class SetResolution(val resolution: CameraResolution) : CameraEvent()
 }

@@ -3,12 +3,14 @@ package com.musagenius.ocrapp.data.camera
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import android.util.Size
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.musagenius.ocrapp.presentation.ui.camera.CameraFacing
+import com.musagenius.ocrapp.presentation.ui.camera.CameraResolution
 import com.musagenius.ocrapp.presentation.ui.camera.FlashMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -71,7 +73,8 @@ class CameraManager @Inject constructor(
         lifecycleOwner: LifecycleOwner,
         previewView: PreviewView,
         flashMode: FlashMode = FlashMode.OFF,
-        cameraFacing: CameraFacing = CameraFacing.BACK
+        cameraFacing: CameraFacing = CameraFacing.BACK,
+        resolution: CameraResolution = CameraResolution.HD
     ) = withContext(Dispatchers.Main) {
         try {
             // Save references for camera operations
@@ -89,8 +92,12 @@ class CameraManager @Inject constructor(
             // Unbind all use cases before rebinding
             cameraProvider?.unbindAll()
 
+            // Target resolution size
+            val targetResolution = Size(resolution.width, resolution.height)
+
             // Set up Preview use case
             preview = Preview.Builder()
+                .setTargetResolution(targetResolution)
                 .build()
                 .also {
                     it.setSurfaceProvider(previewView.surfaceProvider)
@@ -100,11 +107,13 @@ class CameraManager @Inject constructor(
             imageCapture = ImageCapture.Builder()
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
                 .setFlashMode(flashMode.toImageCaptureFlashMode())
+                .setTargetResolution(targetResolution)
                 .build()
 
             // Set up ImageAnalysis for edge detection
             imageAnalysis = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .setTargetResolution(targetResolution)
                 .build()
                 .also { analysis ->
                     analysis.setAnalyzer(executor) { imageProxy ->

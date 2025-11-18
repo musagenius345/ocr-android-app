@@ -247,7 +247,7 @@ fun CameraScreen(
                             onAnimationComplete = { showShutterAnimation = false }
                         )
 
-                        // Top controls (zoom, grid, document overlay, flip)
+                        // Top controls (zoom, grid, document overlay, flip, resolution)
                         CameraTopControls(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
@@ -256,6 +256,7 @@ fun CameraScreen(
                             showGridOverlay = uiState.showGridOverlay,
                             showDocumentOverlay = uiState.showDocumentOverlay,
                             cameraFacing = uiState.cameraFacing,
+                            currentResolution = uiState.resolution,
                             onZoomChange = { viewModel.onEvent(CameraEvent.SetZoom(it)) },
                             onToggleGrid = {
                                 haptic.performLightTap()
@@ -268,6 +269,10 @@ fun CameraScreen(
                             onFlipCamera = {
                                 haptic.performLightTap()
                                 viewModel.onEvent(CameraEvent.FlipCamera)
+                            },
+                            onShowResolutionDialog = {
+                                haptic.performLightTap()
+                                viewModel.onEvent(CameraEvent.ShowResolutionDialog)
                             }
                         )
 
@@ -305,6 +310,20 @@ fun CameraScreen(
                 ) {
                     Text(error)
                 }
+            }
+
+            // Resolution selection dialog
+            if (uiState.showResolutionDialog) {
+                ResolutionSelectionDialog(
+                    currentResolution = uiState.resolution,
+                    onResolutionSelected = { resolution ->
+                        haptic.performLightTap()
+                        viewModel.onEvent(CameraEvent.SetResolution(resolution))
+                    },
+                    onDismiss = {
+                        viewModel.onEvent(CameraEvent.DismissResolutionDialog)
+                    }
+                )
             }
         }
     }
@@ -490,16 +509,36 @@ fun CameraTopControls(
     showGridOverlay: Boolean,
     showDocumentOverlay: Boolean,
     cameraFacing: CameraFacing,
+    currentResolution: CameraResolution,
     onZoomChange: (Float) -> Unit,
     onToggleGrid: () -> Unit,
     onToggleDocumentOverlay: () -> Unit,
-    onFlipCamera: () -> Unit
+    onFlipCamera: () -> Unit,
+    onShowResolutionDialog: () -> Unit
 ) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.End,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // Resolution button
+        FilledIconButton(
+            onClick = onShowResolutionDialog,
+            modifier = Modifier
+                .size(48.dp)
+                .semantics {
+                    contentDescription = "Change resolution. Current: ${currentResolution.getDisplayName()}"
+                },
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = "Resolution"
+            )
+        }
+
         // Camera flip button
         FilledIconButton(
             onClick = onFlipCamera,
@@ -720,6 +759,105 @@ fun LowLightWarning(
                             MaterialTheme.colorScheme.onSecondaryContainer
                         else -> MaterialTheme.colorScheme.onSurface
                     }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ResolutionSelectionDialog(
+    currentResolution: CameraResolution,
+    onResolutionSelected: (CameraResolution) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Select Resolution",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Choose camera resolution for capturing images",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                CameraResolution.entries.forEach { resolution ->
+                    ResolutionOption(
+                        resolution = resolution,
+                        isSelected = resolution == currentResolution,
+                        onClick = { onResolutionSelected(resolution) }
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun ResolutionOption(
+    resolution: CameraResolution,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = if (isSelected) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
+        tonalElevation = if (isSelected) 2.dp else 0.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = resolution.getDisplayName(),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
+                )
+                Text(
+                    text = "${resolution.width} × ${resolution.height}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+            }
+
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Selected",
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }

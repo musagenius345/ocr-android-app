@@ -60,6 +60,9 @@ class CameraViewModel @Inject constructor(
             is CameraEvent.UpdatePreviewSize -> updatePreviewSize(event.width, event.height)
             is CameraEvent.UpdateLightingCondition -> updateLightingCondition(event.condition)
             is CameraEvent.DismissLowLightWarning -> dismissLowLightWarning()
+            is CameraEvent.ShowResolutionDialog -> showResolutionDialog()
+            is CameraEvent.DismissResolutionDialog -> dismissResolutionDialog()
+            is CameraEvent.SetResolution -> setResolution(event.resolution)
         }
     }
 
@@ -78,7 +81,8 @@ class CameraViewModel @Inject constructor(
                     lifecycleOwner = lifecycleOwner,
                     previewView = previewView,
                     flashMode = _uiState.value.flashMode,
-                    cameraFacing = _uiState.value.cameraFacing
+                    cameraFacing = _uiState.value.cameraFacing,
+                    resolution = _uiState.value.resolution
                 )
 
                 // Set up edge detection callback
@@ -296,6 +300,56 @@ class CameraViewModel @Inject constructor(
     private fun dismissLowLightWarning() {
         _uiState.update { it.copy(showLowLightWarning = false) }
         Log.d(TAG, "Low light warning dismissed")
+    }
+
+    /**
+     * Show resolution selection dialog
+     */
+    private fun showResolutionDialog() {
+        _uiState.update { it.copy(showResolutionDialog = true) }
+        Log.d(TAG, "Resolution dialog shown")
+    }
+
+    /**
+     * Dismiss resolution selection dialog
+     */
+    private fun dismissResolutionDialog() {
+        _uiState.update { it.copy(showResolutionDialog = false) }
+        Log.d(TAG, "Resolution dialog dismissed")
+    }
+
+    /**
+     * Set camera resolution and restart camera
+     */
+    private fun setResolution(resolution: CameraResolution) {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(resolution = resolution, showResolutionDialog = false, isLoading = true) }
+                Log.d(TAG, "Resolution changed to: ${resolution.getDisplayName()}")
+
+                // Restart camera with new resolution
+                val lifecycleOwner = lifecycleOwner ?: return@launch
+                val previewView = previewView ?: return@launch
+
+                cameraManager.startCamera(
+                    lifecycleOwner = lifecycleOwner,
+                    previewView = previewView,
+                    flashMode = _uiState.value.flashMode,
+                    cameraFacing = _uiState.value.cameraFacing,
+                    resolution = resolution
+                )
+
+                _uiState.update { it.copy(isLoading = false) }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to change resolution", e)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "Failed to change resolution: ${e.localizedMessage}"
+                    )
+                }
+            }
+        }
     }
 
     /**
