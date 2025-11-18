@@ -161,7 +161,7 @@ fun ScanDetailScreen(
                 state.error != null -> {
                     ErrorState(
                         error = state.error!!,
-                        onRetry = { /* reload */ },
+                        onRetry = viewModel::reloadScan,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }

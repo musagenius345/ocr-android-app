@@ -363,7 +363,7 @@ private fun EmptyState(
 @Composable
 private fun ScansList(
     scans: List<ScanResult>,
-    onScanClick: (Uri) -> Unit,
+    onScanClick: (Long) -> Unit,
     onDelete: (ScanResult) -> Unit,
     modifier: Modifier = Modifier
 ) {

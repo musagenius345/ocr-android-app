@@ -32,23 +32,35 @@ class ScanDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val scanId: Long = savedStateHandle.get<String>("scanId")?.toLongOrNull() ?: 0L
+    private val scanId: Long?
 
     private val _state = MutableStateFlow(ScanDetailState())
     val state: StateFlow<ScanDetailState> = _state.asStateFlow()
 
     init {
-        loadScan()
+        scanId = savedStateHandle.get<String>("scanId")?.toLongOrNull()
+        if (scanId == null) {
+            _state.update {
+                it.copy(
+                    error = "Invalid scan ID",
+                    isLoading = false
+                )
+            }
+        } else {
+            loadScan()
+        }
     }
 
     /**
      * Load the scan details
      */
     private fun loadScan() {
+        val id = scanId ?: return
+
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
 
-            getScanByIdUseCase(scanId).collect { result ->
+            getScanByIdUseCase(id).collect { result ->
                 when (result) {
                     is Result.Success -> {
                         _state.update {
@@ -76,6 +88,13 @@ class ScanDetailViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /**
+     * Reload the scan (for retry after error)
+     */
+    fun reloadScan() {
+        loadScan()
     }
 
     /**
@@ -109,6 +128,8 @@ class ScanDetailViewModel @Inject constructor(
 
             when (val result = updateExtractedTextUseCase(currentScan.id, newText)) {
                 is Result.Success -> {
+                    // Reload scan to refresh state with updated text
+                    loadScan()
                     _state.update {
                         it.copy(
                             isEditingText = false,
@@ -185,6 +206,8 @@ class ScanDetailViewModel @Inject constructor(
 
             when (val result = updateTitleAndNotesUseCase(currentScan.id, newTitle, newNotes)) {
                 is Result.Success -> {
+                    // Reload scan to refresh state with updated title/notes
+                    loadScan()
                     _state.update {
                         it.copy(
                             isEditingTitleNotes = false,
@@ -232,6 +255,8 @@ class ScanDetailViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = updateFavoriteStatusUseCase(currentScan.id, newFavoriteStatus)) {
                 is Result.Success -> {
+                    // Reload scan to refresh state with updated favorite status
+                    loadScan()
                     _state.update {
                         it.copy(
                             snackbarMessage = if (newFavoriteStatus) "Added to favorites" else "Removed from favorites"
