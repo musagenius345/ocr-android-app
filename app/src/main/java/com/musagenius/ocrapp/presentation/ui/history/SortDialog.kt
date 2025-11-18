@@ -22,21 +22,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.musagenius.ocrapp.R
 import com.musagenius.ocrapp.domain.model.SortBy
 import com.musagenius.ocrapp.domain.model.getAllSortOptions
 
 /**
  * Get display name for sort option (UI layer)
+ * Uses string resources for localization support
  */
+@Composable
 private fun SortBy.getDisplayName(): String {
     return when (this) {
-        SortBy.DATE_DESC -> "Date (Newest First)"
-        SortBy.DATE_ASC -> "Date (Oldest First)"
-        SortBy.TITLE_ASC -> "Title (A-Z)"
-        SortBy.TITLE_DESC -> "Title (Z-A)"
-        SortBy.CONFIDENCE_DESC -> "Confidence (High to Low)"
-        SortBy.CONFIDENCE_ASC -> "Confidence (Low to High)"
+        SortBy.DATE_DESC -> stringResource(R.string.sort_date_newest)
+        SortBy.DATE_ASC -> stringResource(R.string.sort_date_oldest)
+        SortBy.TITLE_ASC -> stringResource(R.string.sort_title_az)
+        SortBy.TITLE_DESC -> stringResource(R.string.sort_title_za)
+        SortBy.CONFIDENCE_DESC -> stringResource(R.string.sort_confidence_high)
+        SortBy.CONFIDENCE_ASC -> stringResource(R.string.sort_confidence_low)
     }
 }
 
@@ -55,7 +59,7 @@ fun SortDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Sort Scans",
+                text = stringResource(R.string.sort_scans),
                 style = MaterialTheme.typography.headlineSmall
             )
         },
@@ -98,12 +102,12 @@ fun SortDialog(
                     onSortSelected(selectedSort)
                 }
             ) {
-                Text("Apply")
+                Text(stringResource(R.string.apply))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

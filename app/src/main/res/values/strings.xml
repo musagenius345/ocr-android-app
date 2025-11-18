@@ -26,6 +26,16 @@
     <string name="share_text">Share</string>
     <string name="copy_text">Copy</string>
 
+    <!-- Sort Options -->
+    <string name="sort_scans">Sort Scans</string>
+    <string name="sort_date_newest">Date (Newest First)</string>
+    <string name="sort_date_oldest">Date (Oldest First)</string>
+    <string name="sort_title_az">Title (A-Z)</string>
+    <string name="sort_title_za">Title (Z-A)</string>
+    <string name="sort_confidence_high">Confidence (High to Low)</string>
+    <string name="sort_confidence_low">Confidence (Low to High)</string>
+    <string name="apply">Apply</string>
+
     <!-- Settings -->
     <string name="settings_language">OCR Language</string>
     <string name="settings_theme">Theme</string>
