@@ -254,6 +254,17 @@ class DocumentEdgeDetector @Inject constructor() {
             val rowStride = yPlane.rowStride
             val pixelStride = yPlane.pixelStride
 
+            // Reset buffer position to start
+            yBuffer.rewind()
+
+            // Validate buffer has sufficient capacity
+            // Required capacity is calculated from the last pixel position
+            val requiredCapacity = (height - 1) * rowStride + width * pixelStride
+            if (yBuffer.capacity() < requiredCapacity) {
+                Log.e(TAG, "Buffer too small: ${yBuffer.capacity()} < $requiredCapacity")
+                return null
+            }
+
             // Create grayscale bitmap from Y plane
             val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
             val pixels = IntArray(width * height)
@@ -264,6 +275,14 @@ class DocumentEdgeDetector @Inject constructor() {
                 for (x in 0 until width) {
                     // Calculate buffer position using rowStride and pixelStride
                     val bufferIndex = y * rowStride + x * pixelStride
+
+                    // Bounds check to prevent crashes on unexpected stride values
+                    if (bufferIndex >= yBuffer.capacity()) {
+                        Log.e(TAG, "Buffer index out of bounds: $bufferIndex >= ${yBuffer.capacity()}")
+                        bitmap.recycle()
+                        return null
+                    }
+
                     val yValue = yBuffer[bufferIndex].toInt() and 0xFF
 
                     // Convert Y (luminance) to grayscale RGB
