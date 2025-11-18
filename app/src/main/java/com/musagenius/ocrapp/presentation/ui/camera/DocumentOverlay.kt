@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import com.musagenius.ocrapp.data.camera.DocumentEdgeDetector
+import com.musagenius.ocrapp.data.camera.DocumentEdgeDetector.Point
 
 /**
  * Overlay that draws detected document edges on camera preview
@@ -204,8 +205,7 @@ private fun DrawScope.drawCornerMarker(
         color = color,
         topLeft = horizontalStart,
         size = Size(cornerSize, strokeWidth),
-        cornerRadius = CornerRadius(strokeWidth / 2, strokeWidth / 2),
-        style = Stroke(width = strokeWidth)
+        cornerRadius = CornerRadius(strokeWidth / 2, strokeWidth / 2)
     )
 
     // Vertical line
@@ -218,8 +218,7 @@ private fun DrawScope.drawCornerMarker(
         color = color,
         topLeft = verticalStart,
         size = Size(strokeWidth, cornerSize),
-        cornerRadius = CornerRadius(strokeWidth / 2, strokeWidth / 2),
-        style = Stroke(width = strokeWidth)
+        cornerRadius = CornerRadius(strokeWidth / 2, strokeWidth / 2)
     )
 }
 
