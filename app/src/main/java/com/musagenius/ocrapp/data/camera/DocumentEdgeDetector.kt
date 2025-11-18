@@ -121,8 +121,8 @@ class DocumentEdgeDetector @Inject constructor() {
             return null
         }
 
-        // Find the largest rectangular region
-        val documentCorners = findLargestRectangle(brightRegions, width, height)
+        // Find the axis-aligned bounding box of edge points
+        val documentCorners = findAxisAlignedBoundingBox(brightRegions, width, height)
 
         return documentCorners?.let {
             // Scale back to original image size
@@ -134,7 +134,7 @@ class DocumentEdgeDetector @Inject constructor() {
                 topRight = Point(it.topRight.x * scaleX, it.topRight.y * scaleY),
                 bottomRight = Point(it.bottomRight.x * scaleX, it.bottomRight.y * scaleY),
                 bottomLeft = Point(it.bottomLeft.x * scaleX, it.bottomLeft.y * scaleY),
-                confidence = 0.7f // Simplified confidence score
+                confidence = it.confidence // Use calculated confidence from detection
             )
         }
     }
@@ -186,10 +186,18 @@ class DocumentEdgeDetector @Inject constructor() {
     }
 
     /**
-     * Find largest rectangle from edge points
-     * Simplified: returns approximate document bounds
+     * Find axis-aligned bounding box from edge points
+     *
+     * Note: This computes a simple bounding box aligned with image axes.
+     * For rotated documents, the corners may not align with actual document edges.
+     * A more sophisticated approach would detect oriented rectangles.
+     *
+     * @param points Detected edge points
+     * @param width Image width
+     * @param height Image height
+     * @return DocumentCorners with calculated confidence, or null if detection fails
      */
-    private fun findLargestRectangle(points: List<Point>, width: Int, height: Int): DocumentCorners? {
+    private fun findAxisAlignedBoundingBox(points: List<Point>, width: Int, height: Int): DocumentCorners? {
         if (points.isEmpty()) return null
 
         // Find bounding box of detected edges
@@ -215,6 +223,13 @@ class DocumentEdgeDetector @Inject constructor() {
             return null
         }
 
+        // Calculate confidence based on detection quality metrics
+        val confidence = calculateDetectionConfidence(
+            pointCount = points.size,
+            areaRatio = areaRatio,
+            imageArea = imageArea
+        )
+
         // Add margin for better UX
         val margin = 20f
         return DocumentCorners(
@@ -222,8 +237,38 @@ class DocumentEdgeDetector @Inject constructor() {
             topRight = Point(min(width.toFloat(), maxX + margin), max(0f, minY - margin)),
             bottomRight = Point(min(width.toFloat(), maxX + margin), min(height.toFloat(), maxY + margin)),
             bottomLeft = Point(max(0f, minX - margin), min(height.toFloat(), maxY + margin)),
-            confidence = 0.6f
+            confidence = confidence
         )
+    }
+
+    /**
+     * Calculate detection confidence based on quality metrics
+     *
+     * @param pointCount Number of detected edge points
+     * @param areaRatio Ratio of detected area to image area
+     * @param imageArea Total image area
+     * @return Confidence score between 0.0 and 1.0
+     */
+    private fun calculateDetectionConfidence(
+        pointCount: Int,
+        areaRatio: Float,
+        imageArea: Int
+    ): Float {
+        // Base confidence on number of edge points detected
+        // More points generally indicate better detection
+        val pointDensity = pointCount.toFloat() / imageArea
+        val pointScore = (pointDensity * 10000f).coerceIn(0f, 1f)
+
+        // Area ratio score: prefer documents that fill reasonable portion of frame
+        // Ideal range is 30-60% of image
+        val idealAreaRatio = 0.45f
+        val areaScore = 1f - kotlin.math.abs(areaRatio - idealAreaRatio) / idealAreaRatio
+
+        // Combine scores with weighted average
+        // Point density is more important (70%) than area ratio (30%)
+        val confidence = (pointScore * 0.7f + areaScore * 0.3f).coerceIn(0f, 1f)
+
+        return confidence
     }
 
     /**
