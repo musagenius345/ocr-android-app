@@ -3,6 +3,7 @@ package com.musagenius.ocrapp.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.musagenius.ocrapp.domain.model.Result
+import com.musagenius.ocrapp.domain.model.TesseractLanguage
 import com.musagenius.ocrapp.domain.usecase.DeleteLanguageUseCase
 import com.musagenius.ocrapp.domain.usecase.DownloadLanguageUseCase
 import com.musagenius.ocrapp.domain.usecase.GetAvailableLanguagesUseCase
@@ -47,9 +48,19 @@ class LanguageViewModel @Inject constructor(
             when (val result = getAvailableLanguagesUseCase()) {
                 is Result.Success -> {
                     val storageUsed = getLanguageStorageUseCase()
+                    // Map Language to TesseractLanguage
+                    val tesseractLanguages = result.data.map { lang ->
+                        TesseractLanguage(
+                            code = lang.code,
+                            name = lang.displayName,
+                            downloadUrl = "", // URL would come from a different source
+                            fileSizeBytes = lang.fileSize,
+                            isInstalled = lang.isInstalled
+                        )
+                    }
                     _state.update {
                         it.copy(
-                            languages = result.data,
+                            languages = tesseractLanguages,
                             totalStorageUsed = storageUsed,
                             isLoading = false,
                             error = null
