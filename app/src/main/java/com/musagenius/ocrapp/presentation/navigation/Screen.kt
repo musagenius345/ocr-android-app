@@ -7,6 +7,12 @@ import android.net.Uri
  */
 sealed class Screen(val route: String) {
     data object Camera : Screen("camera")
+    data object ImageEditor : Screen("image_editor/{imageUri}") {
+        fun createRoute(imageUri: String): String {
+            val encodedUri = Uri.encode(imageUri)
+            return "image_editor/$encodedUri"
+        }
+    }
     data object Results : Screen("results/{imageUri}") {
         fun createRoute(imageUri: String): String {
             val encodedUri = Uri.encode(imageUri)

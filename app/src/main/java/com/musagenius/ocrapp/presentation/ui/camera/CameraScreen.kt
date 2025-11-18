@@ -44,6 +44,7 @@ import java.util.Locale
 @Composable
 fun CameraScreen(
     onImageCaptured: (Uri) -> Unit,
+    onGalleryImageSelected: (Uri) -> Unit = onImageCaptured,
     onNavigateBack: () -> Unit,
     viewModel: CameraViewModel = hiltViewModel()
 ) {
@@ -62,7 +63,7 @@ fun CameraScreen(
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { onImageCaptured(it) }
+        uri?.let { onGalleryImageSelected(it) }
     }
 
     // Permission rationale dialog state
