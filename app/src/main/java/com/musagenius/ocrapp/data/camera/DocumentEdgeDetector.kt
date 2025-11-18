@@ -228,8 +228,9 @@ class DocumentEdgeDetector @Inject constructor() {
 
     /**
      * Get brightness from color
+     * @param color Packed ARGB color value
+     * @return Luminance value (0-255)
      */
-    @ColorInt
     private fun getBrightness(@ColorInt color: Int): Int {
         val r = Color.red(color)
         val g = Color.green(color)
@@ -239,28 +240,35 @@ class DocumentEdgeDetector @Inject constructor() {
     }
 
     /**
-     * Convert ImageProxy to Bitmap
+     * Convert ImageProxy to Bitmap using stride-aware Y plane extraction
+     * Properly handles rowStride and pixelStride for YUV_420_888 format
      */
     private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap? {
-        val planeProxy = imageProxy.planes[0]
-        val buffer: ByteBuffer = planeProxy.buffer
-        val bytes = ByteArray(buffer.remaining())
-        buffer.get(bytes)
-
         return try {
-            // For YUV format, we need to handle it differently
-            // This is a simplified version - may need enhancement
             val width = imageProxy.width
             val height = imageProxy.height
+
+            // Get Y plane (luminance) from YUV_420_888
+            val yPlane = imageProxy.planes[0]
+            val yBuffer = yPlane.buffer
+            val rowStride = yPlane.rowStride
+            val pixelStride = yPlane.pixelStride
 
             // Create grayscale bitmap from Y plane
             val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
             val pixels = IntArray(width * height)
 
-            for (i in pixels.indices) {
-                val y = bytes.getOrNull(i)?.toInt() ?: 0
-                val gray = y and 0xFF
-                pixels[i] = Color.rgb(gray, gray, gray)
+            // Row-by-row copy respecting stride values
+            var pixelIndex = 0
+            for (y in 0 until height) {
+                for (x in 0 until width) {
+                    // Calculate buffer position using rowStride and pixelStride
+                    val bufferIndex = y * rowStride + x * pixelStride
+                    val yValue = yBuffer[bufferIndex].toInt() and 0xFF
+
+                    // Convert Y (luminance) to grayscale RGB
+                    pixels[pixelIndex++] = Color.rgb(yValue, yValue, yValue)
+                }
             }
 
             bitmap.setPixels(pixels, 0, width, 0, 0, width, height)
