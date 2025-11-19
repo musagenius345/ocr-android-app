@@ -15,6 +15,7 @@ import org.junit.Test
 import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.MockitoAnnotations
+import org.mockito.kotlin.argThat
 import org.mockito.kotlin.whenever
 import java.util.Date
 
@@ -183,7 +184,7 @@ class ScanManagementUseCasesTest {
 
         // Then
         verify(scanRepository).deleteScan(scanId)
-        verify(scanRepository, never()).deleteScan(not(eq(scanId)))
+        verify(scanRepository, never()).deleteScan(argThat { this != scanId })
     }
 
     // ============ InitializeOCRUseCase Tests ============
