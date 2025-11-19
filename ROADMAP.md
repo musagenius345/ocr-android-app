@@ -266,8 +266,8 @@ Implement camera functionality to capture documents and images for OCR processin
 - File storage is efficient
 - No storage leaks
 
-##### Milestone 2.3: Camera Controls (Week 5-6)
-**Objective:** Add professional camera controls
+##### Milestone 2.3: Camera Controls & Document Detection (Week 5-6)
+**Objective:** Add professional camera controls and document scanning
 
 - [ ] Flash toggle (on/off/auto)
 - [ ] Zoom controls (pinch-to-zoom, slider)
@@ -275,6 +275,12 @@ Implement camera functionality to capture documents and images for OCR processin
 - [ ] Camera switch (front/back)
 - [ ] Exposure compensation
 - [ ] Grid overlay
+- [ ] **ML Kit Document Scanner integration (MVP)**
+  - Automatic edge detection
+  - Auto-capture when document is stable
+  - Perspective correction
+  - Built-in image enhancement
+  - Note: GMS dependency - see [Issue #11](https://github.com/musagenius345/ocr-android-app/issues/11) for OpenCV migration plan
 - [ ] Create polished camera UI
 - [ ] **Accessibility:** Ensure 48x48dp minimum touch targets
 - [ ] **Accessibility:** Add semantic labels for all controls
@@ -283,6 +289,7 @@ Implement camera functionality to capture documents and images for OCR processin
 
 **Success Criteria:**
 - All controls work smoothly
+- Document detection works reliably
 - UI is intuitive and responsive
 - Professional look and feel
 - **Accessibility review approved**
@@ -828,7 +835,9 @@ Prepare the app for production release on Google Play Store.
 - [ ] Batch processing multiple images
 - [ ] PDF export functionality
 - [ ] Advanced image editing tools
-- [ ] **OpenCV Document Edge Detection** (FOSS, no GMS dependency)
+- [ ] **Migrate to OpenCV Document Edge Detection** (FOSS compliance - [Issue #11](https://github.com/musagenius345/ocr-android-app/issues/11))
+  - Replace ML Kit Document Scanner with OpenCV implementation
+  - Remove Google Play Services dependency for true FOSS status
   - **Preprocessing Pipeline:**
     - Grayscale conversion for single-channel processing
     - Gaussian blur (5×5 kernel) to reduce noise
@@ -845,8 +854,9 @@ Prepare the app for production release on Google Play Store.
     - Manual corner adjustment for edge cases
     - Visual feedback when document detected
   - **Known Limitations:** May struggle with bright surfaces, dark shadows, low contrast
-    - Future: Consider ML-based detection for robust handling of diverse conditions
+    - Provide manual adjustment UI for edge cases
   - **Dependencies:** `org.opencv:opencv-android` (~15MB)
+  - **Benefits:** Works on all devices (Huawei, custom ROMs, privacy-focused users)
   - **Reference:** [Scanbot OpenCV Edge Detection Guide](https://scanbot.io/techblog/document-edge-detection-with-opencv/)
 - [ ] Auto-rotate based on text orientation
 - [ ] Text-to-speech for extracted text
