@@ -12,6 +12,7 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.West
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
@@ -20,7 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -61,9 +62,6 @@ fun CameraScreen(
     // Shutter animation trigger
     var showShutterAnimation by remember { mutableStateOf(false) }
 
-    // PreviewView reference for proper lifecycle management
-    var previewView: PreviewView? by remember { mutableStateOf(null) }
-
     // Camera permission state
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
@@ -94,20 +92,6 @@ fun CameraScreen(
         }
     }
 
-    // Lifecycle-aware camera initialization
-    // Only start camera when PreviewView is ready and permission is granted
-    DisposableEffect(previewView, cameraPermissionState.status.isGranted) {
-        val preview = previewView
-        if (preview != null && cameraPermissionState.status.isGranted) {
-            // Additional post to ensure surface is fully ready
-            preview.post {
-                viewModel.startCamera(lifecycleOwner, preview)
-            }
-        }
-        onDispose {
-            // Cleanup is handled by ViewModel
-        }
-    }
 
     // Permission rationale dialog state
     var showRationaleDialog by remember { mutableStateOf(false) }
@@ -228,13 +212,19 @@ fun CameraScreen(
                                 }
                             }
                     ) {
-                        CameraPreview(
-                            modifier = Modifier.fillMaxSize(),
-                            onPreviewViewCreated = { preview ->
-                                // Store reference for lifecycle-aware initialization
-                                previewView = preview
-                            }
+                        // Create PreviewView - controller will be bound by CameraManager
+                        val previewView = CameraPreview(
+                            modifier = Modifier.fillMaxSize()
                         )
+
+                        // Simple LaunchedEffect for camera initialization
+                        // LifecycleCameraController handles all the complex lifecycle/surface timing
+                        // Key on lifecycleOwner only (not previewView) to avoid retriggers on recomposition
+                        LaunchedEffect(lifecycleOwner) {
+                            if (cameraPermissionState.status.isGranted) {
+                                viewModel.startCamera(lifecycleOwner, previewView)
+                            }
+                        }
 
                         // Grid overlay
                         if (uiState.showGridOverlay) {
@@ -374,7 +364,7 @@ fun CameraTopBar(
                 }
             ) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
+                    imageVector = Icons.Default.West,
                     contentDescription = "Back"
                 )
             }

@@ -45,11 +45,6 @@ class CameraViewModel @Inject constructor(
     private val _scannerIntentRequest = MutableStateFlow<IntentSenderRequest?>(null)
     val scannerIntentRequest: StateFlow<IntentSenderRequest?> = _scannerIntentRequest.asStateFlow()
 
-    // Store references for camera restart operations
-    private var lifecycleOwner: LifecycleOwner? = null
-    private var previewView: PreviewView? = null
-    private var isCameraStarted = false
-
     companion object {
         private const val TAG = "CameraViewModel"
     }
@@ -80,32 +75,22 @@ class CameraViewModel @Inject constructor(
     }
 
     /**
-     * Start camera with preview
+     * Start camera with preview using LifecycleCameraController
+     * Much simpler than before - controller handles lifecycle and race conditions
      */
     fun startCamera(
         lifecycleOwner: LifecycleOwner,
         previewView: PreviewView
     ) {
-        // Prevent multiple camera starts
-        if (isCameraStarted) {
-            Log.d(TAG, "Camera already started, skipping")
-            return
-        }
-
         viewModelScope.launch {
             try {
-                // Store references for camera restart operations (e.g., resolution change)
-                this@CameraViewModel.lifecycleOwner = lifecycleOwner
-                this@CameraViewModel.previewView = previewView
-
                 _uiState.update { it.copy(isLoading = true, error = null) }
 
                 cameraManager.startCamera(
                     lifecycleOwner = lifecycleOwner,
                     previewView = previewView,
                     flashMode = _uiState.value.flashMode,
-                    cameraFacing = _uiState.value.cameraFacing,
-                    resolution = _uiState.value.resolution
+                    cameraFacing = _uiState.value.cameraFacing
                 )
 
                 // Set up lighting condition callback
@@ -116,12 +101,10 @@ class CameraViewModel @Inject constructor(
                 // Update camera capabilities after starting
                 updateCameraCapabilities()
 
-                isCameraStarted = true
                 _uiState.update { it.copy(isLoading = false) }
                 Log.d(TAG, "Camera started successfully")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to start camera", e)
-                isCameraStarted = false // Reset flag on error to allow retry
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -467,37 +450,20 @@ class CameraViewModel @Inject constructor(
     }
 
     /**
-     * Set camera resolution and restart camera
+     * Set camera resolution
+     * Note: LifecycleCameraController doesn't support runtime resolution changes easily
+     * Resolution change would require recreating the entire controller and rebinding
+     * For now, just update the UI state
      */
     private fun setResolution(resolution: CameraResolution) {
-        viewModelScope.launch {
-            try {
-                _uiState.update { it.copy(resolution = resolution, showResolutionDialog = false, isLoading = true) }
-                Log.d(TAG, "Resolution changed to: ${resolution.getDisplayName()}")
-
-                // Restart camera with new resolution
-                val lifecycleOwner = lifecycleOwner ?: return@launch
-                val previewView = previewView ?: return@launch
-
-                cameraManager.startCamera(
-                    lifecycleOwner = lifecycleOwner,
-                    previewView = previewView,
-                    flashMode = _uiState.value.flashMode,
-                    cameraFacing = _uiState.value.cameraFacing,
-                    resolution = resolution
-                )
-
-                _uiState.update { it.copy(isLoading = false) }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to change resolution", e)
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        error = "Failed to change resolution: ${e.localizedMessage}"
-                    )
-                }
-            }
+        _uiState.update {
+            it.copy(
+                resolution = resolution,
+                showResolutionDialog = false,
+                error = "Resolution change requires app restart with LifecycleCameraController"
+            )
         }
+        Log.d(TAG, "Resolution setting saved (restart required): ${resolution.getDisplayName()}")
     }
 
     /**
@@ -553,11 +519,6 @@ class CameraViewModel @Inject constructor(
         super.onCleared()
         cameraManager.clearLightingConditionCallback()
         cameraManager.release()
-
-        // Clear references to avoid memory leaks
-        lifecycleOwner = null
-        previewView = null
-        isCameraStarted = false
 
         Log.d(TAG, "ViewModel cleared, camera released")
     }

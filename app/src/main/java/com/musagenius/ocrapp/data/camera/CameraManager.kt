@@ -3,22 +3,17 @@ package com.musagenius.ocrapp.data.camera
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import android.util.Size
 import androidx.camera.core.*
-import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.core.SurfaceOrientedMeteringPointFactory
+import androidx.camera.view.CameraController
+import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.musagenius.ocrapp.presentation.ui.camera.CameraFacing
-import com.musagenius.ocrapp.presentation.ui.camera.CameraResolution
 import com.musagenius.ocrapp.presentation.ui.camera.FlashMode
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.concurrent.atomic.AtomicBoolean
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -30,33 +25,19 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 /**
- * Manages CameraX operations
+ * Manages CameraX operations using LifecycleCameraController
  * Scoped to activity lifecycle to ensure proper camera resource cleanup
+ *
+ * Uses LifecycleCameraController for simpler lifecycle management and Compose integration
  */
 @ActivityRetainedScoped
 class CameraManager @Inject constructor(
     private val context: Context,
     private val lowLightDetector: LowLightDetector
 ) {
-    private var cameraProvider: ProcessCameraProvider? = null
-    private var camera: Camera? = null
-    private var preview: Preview? = null
-    private var imageCapture: ImageCapture? = null
-    private var imageAnalysis: ImageAnalysis? = null
+    private var cameraController: LifecycleCameraController? = null
     private val mainExecutor: Executor = ContextCompat.getMainExecutor(context)
-    private val analysisExecutor: Executor = java.util.concurrent.Executors.newSingleThreadExecutor()
     private var currentCameraFacing: CameraFacing = CameraFacing.BACK
-    private var lifecycleOwner: LifecycleOwner? = null
-    private var previewView: PreviewView? = null
-
-    // Managed coroutine scope for image analysis
-    private var analysisScope: CoroutineScope? = null
-
-    // Atomic flag to skip frames while processing
-    private val isProcessingFrame = AtomicBoolean(false)
-
-    // Callback for lighting condition updates
-    private var lightingConditionCallback: ((LowLightDetector.LightingCondition) -> Unit)? = null
 
     companion object {
         private const val TAG = "CameraManager"
@@ -64,93 +45,65 @@ class CameraManager @Inject constructor(
     }
 
     /**
-     * Initialize camera with preview
+     * Initialize camera with LifecycleCameraController
+     * Much simpler than manual use case management - handles lifecycle automatically
      */
     suspend fun startCamera(
         lifecycleOwner: LifecycleOwner,
         previewView: PreviewView,
         flashMode: FlashMode = FlashMode.OFF,
-        cameraFacing: CameraFacing = CameraFacing.BACK,
-        resolution: CameraResolution = CameraResolution.HD
+        cameraFacing: CameraFacing = CameraFacing.BACK
     ) = withContext(Dispatchers.Main) {
         try {
-            // Save references for camera operations
-            this@CameraManager.lifecycleOwner = lifecycleOwner
-            this@CameraManager.previewView = previewView
-            this@CameraManager.currentCameraFacing = cameraFacing
+            Log.d(TAG, "Initializing camera with ${cameraFacing.getDisplayName()}")
 
-            // Create managed scope for image analysis
-            analysisScope?.cancel()
-            analysisScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-            isProcessingFrame.set(false)
+            // Save current camera facing
+            currentCameraFacing = cameraFacing
 
-            cameraProvider = getCameraProvider()
-
-            // Unbind all use cases before rebinding
-            cameraProvider?.unbindAll()
-
-            // Target resolution size
-            val targetResolution = Size(resolution.width, resolution.height)
-
-            // Set up Preview use case
-            preview = Preview.Builder()
-                .setTargetResolution(targetResolution)
-                .build()
-                .also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
-                }
-
-            // Set up ImageCapture use case
-            imageCapture = ImageCapture.Builder()
-                .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
-                .setFlashMode(flashMode.toImageCaptureFlashMode())
-                .setTargetResolution(targetResolution)
-                .build()
-
-            // Set up ImageAnalysis for low light detection
-            // Use lower resolution to reduce device load and avoid timeout on Pixel devices
-            val analysisResolution = Size(640, 480)
-            imageAnalysis = ImageAnalysis.Builder()
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .setTargetResolution(analysisResolution)
-                .build()
-                .also { analysis ->
-                    analysis.setAnalyzer(analysisExecutor) { imageProxy ->
-                        // Process image for low light on background thread
-                        processImageForAnalysis(imageProxy)
-                    }
-                }
-
-            // Select camera based on facing
-            val cameraSelector = when (cameraFacing) {
-                CameraFacing.BACK -> CameraSelector.DEFAULT_BACK_CAMERA
-                CameraFacing.FRONT -> CameraSelector.DEFAULT_FRONT_CAMERA
+            // Create or reuse controller
+            val controller = cameraController ?: LifecycleCameraController(context).also {
+                cameraController = it
             }
 
-            // Bind use cases to camera
-            // KNOWN ISSUE: Pixel 6 Pro Camera2 HAL times out with 3 concurrent streams
-            // ImageAnalysis disabled to prevent timeout - low-light detection unavailable
-            camera = cameraProvider?.bindToLifecycle(
-                lifecycleOwner,
-                cameraSelector,
-                preview,
-                imageCapture
-                // imageAnalysis temporarily disabled for Pixel device compatibility
-            )
+            // Configure controller
+            controller.apply {
+                // Set camera selector
+                cameraSelector = when (cameraFacing) {
+                    CameraFacing.BACK -> CameraSelector.DEFAULT_BACK_CAMERA
+                    CameraFacing.FRONT -> CameraSelector.DEFAULT_FRONT_CAMERA
+                }
 
-            Log.d(TAG, "Camera started successfully with ${cameraFacing.getDisplayName()}")
+                // Enable image capture
+                setEnabledUseCases(
+                    CameraController.IMAGE_CAPTURE or CameraController.IMAGE_ANALYSIS
+                )
+
+                // Set flash mode
+                imageCaptureFlashMode = flashMode.toImageCaptureFlashMode()
+
+                // IMPORTANT: Set PreviewView controller FIRST, then bind lifecycle
+                // This ensures the surface is available when binding
+                previewView.controller = this
+
+                // Bind controller to lifecycle
+                unbind() // Unbind any previous lifecycle
+                bindToLifecycle(lifecycleOwner)
+            }
+
+            Log.d(TAG, "Camera controller bound successfully")
+
         } catch (e: Exception) {
-            Log.e(TAG, "Error starting camera", e)
+            Log.e(TAG, "Failed to start camera", e)
             throw e
         }
     }
 
     /**
-     * Capture image and save to file
+     * Capture image and save to file using controller
      */
     suspend fun captureImage(): Uri = suspendCoroutine { continuation ->
-        val imageCapture = imageCapture ?: run {
-            continuation.resumeWithException(IllegalStateException("ImageCapture not initialized"))
+        val controller = cameraController ?: run {
+            continuation.resumeWithException(IllegalStateException("Camera controller not initialized"))
             return@suspendCoroutine
         }
 
@@ -163,7 +116,7 @@ class CameraManager @Inject constructor(
 
         val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
 
-        imageCapture.takePicture(
+        controller.takePicture(
             outputOptions,
             mainExecutor,
             object : ImageCapture.OnImageSavedCallback {
@@ -182,75 +135,77 @@ class CameraManager @Inject constructor(
     }
 
     /**
-     * Set flash mode
+     * Set flash mode using controller
      */
     fun setFlashMode(flashMode: FlashMode) {
-        imageCapture?.flashMode = flashMode.toImageCaptureFlashMode()
+        cameraController?.imageCaptureFlashMode = flashMode.toImageCaptureFlashMode()
     }
 
     /**
-     * Set zoom ratio
+     * Set zoom ratio using controller
      * @param ratio Zoom ratio (1.0 = no zoom)
      */
     fun setZoomRatio(ratio: Float) {
-        camera?.cameraControl?.setZoomRatio(ratio)
+        cameraController?.cameraControl?.setZoomRatio(ratio)
         Log.d(TAG, "Zoom ratio set to: $ratio")
     }
 
     /**
-     * Get zoom state
+     * Get zoom state from controller
      */
-    fun getZoomState() = camera?.cameraInfo?.zoomState
+    fun getZoomState() = cameraController?.cameraInfo?.zoomState
 
     /**
-     * Focus on a point
+     * Focus on a point using controller
      * @param x X coordinate (0-1, normalized)
      * @param y Y coordinate (0-1, normalized)
      * @param width Preview width in pixels
      * @param height Preview height in pixels
      */
     fun focusOnPoint(x: Float, y: Float, width: Int, height: Int) {
-        val factory = previewView?.meteringPointFactory ?: return
-        // Convert normalized coordinates (0-1) to pixel coordinates
-        val pixelX = x * width
-        val pixelY = y * height
-        val point = factory.createPoint(pixelX, pixelY)
+        val controller = cameraController ?: return
+
+        // Use SurfaceOrientedMeteringPointFactory with display size
+        val factory = SurfaceOrientedMeteringPointFactory(width.toFloat(), height.toFloat())
+
+        // Factory expects normalized coordinates, which we already have
+        val point = factory.createPoint(x, y)
         val action = FocusMeteringAction.Builder(point)
             .setAutoCancelDuration(3, java.util.concurrent.TimeUnit.SECONDS)
             .build()
 
-        camera?.cameraControl?.startFocusAndMetering(action)
-        Log.d(TAG, "Focus requested at normalized: ($x, $y), pixels: ($pixelX, $pixelY)")
+        controller.cameraControl?.startFocusAndMetering(action)
+        Log.d(TAG, "Focus requested at normalized: ($x, $y), size: ($width, $height)")
     }
 
     /**
-     * Set exposure compensation
+     * Set exposure compensation using controller
      * @param compensation Exposure compensation index
      */
     fun setExposureCompensation(compensation: Int) {
-        camera?.cameraControl?.setExposureCompensationIndex(compensation)
+        cameraController?.cameraControl?.setExposureCompensationIndex(compensation)
         Log.d(TAG, "Exposure compensation set to: $compensation")
     }
 
     /**
-     * Get exposure state
+     * Get exposure state from controller
      */
-    fun getExposureState() = camera?.cameraInfo?.exposureState
+    fun getExposureState() = cameraController?.cameraInfo?.exposureState
 
     /**
-     * Flip camera (front/back)
+     * Flip camera (front/back) using controller
      */
     suspend fun flipCamera() = withContext(Dispatchers.Main) {
+        val controller = cameraController ?: return@withContext
         val newFacing = currentCameraFacing.flip()
-        val owner = lifecycleOwner ?: return@withContext
-        val view = previewView ?: return@withContext
 
-        startCamera(
-            lifecycleOwner = owner,
-            previewView = view,
-            cameraFacing = newFacing
-        )
+        // Update camera selector on controller
+        controller.cameraSelector = when (newFacing) {
+            CameraFacing.BACK -> CameraSelector.DEFAULT_BACK_CAMERA
+            CameraFacing.FRONT -> CameraSelector.DEFAULT_FRONT_CAMERA
+        }
 
+        currentCameraFacing = newFacing
         Log.d(TAG, "Camera flipped to: ${newFacing.getDisplayName()}")
     }
 
@@ -264,8 +219,7 @@ class CameraManager @Inject constructor(
      */
     suspend fun isCameraAvailable(): Boolean = withContext(Dispatchers.IO) {
         try {
-            val provider = getCameraProvider()
-            provider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA)
+            cameraController?.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA) ?: false
         } catch (e: Exception) {
             Log.e(TAG, "Error checking camera availability", e)
             false
@@ -274,105 +228,28 @@ class CameraManager @Inject constructor(
 
     /**
      * Set callback for lighting condition updates
+     * Note: Image analysis can be added via controller.setImageAnalysisAnalyzer() if needed
      */
     fun setLightingConditionCallback(callback: (LowLightDetector.LightingCondition) -> Unit) {
-        lightingConditionCallback = callback
+        // TODO: Implement image analysis via controller.setImageAnalysisAnalyzer() if needed
+        Log.d(TAG, "Lighting condition callback set (analysis not yet implemented with controller)")
     }
 
     /**
      * Clear lighting condition callback
      */
     fun clearLightingConditionCallback() {
-        lightingConditionCallback = null
-    }
-
-    /**
-     * Process image for lighting analysis
-     * Called by ImageAnalysis analyzer
-     */
-    private fun processImageForAnalysis(imageProxy: ImageProxy) {
-        val lightCallback = lightingConditionCallback
-
-        // Only process if there's at least one callback registered
-        if (lightCallback == null) {
-            imageProxy.close()
-            return
-        }
-
-        // Skip frame if already processing to prevent concurrent CPU-heavy work
-        if (!isProcessingFrame.compareAndSet(false, true)) {
-            imageProxy.close()
-            return
-        }
-
-        // Get the managed scope
-        val scope = analysisScope
-        if (scope == null) {
-            imageProxy.close()
-            isProcessingFrame.set(false)
-            return
-        }
-
-        // Launch coroutine in managed scope
-        scope.launch {
-            try {
-                // Perform heavy work on Default dispatcher
-                withContext(Dispatchers.Default) {
-                    // Detect lighting condition if callback is registered
-                    val lightCondition = if (lightCallback != null) {
-                        lowLightDetector.detectLightingCondition(imageProxy)
-                    } else {
-                        null
-                    }
-
-                    // Post results on main thread
-                    withContext(Dispatchers.Main) {
-                        lightCondition?.let { lightCallback?.invoke(it) }
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error in image analysis", e)
-            } finally {
-                imageProxy.close()
-                isProcessingFrame.set(false)
-            }
-        }
+        cameraController?.clearImageAnalysisAnalyzer()
+        Log.d(TAG, "Lighting condition callback cleared")
     }
 
     /**
      * Release camera resources
      */
     fun release() {
-        // Cancel managed scope to prevent coroutine leaks
-        analysisScope?.cancel()
-        analysisScope = null
-        isProcessingFrame.set(false)
-
-        cameraProvider?.unbindAll()
-        camera = null
-        preview = null
-        imageCapture = null
-        imageAnalysis = null
-        lightingConditionCallback = null
-
-        // Shutdown analysis executor
-        (analysisExecutor as? java.util.concurrent.ExecutorService)?.shutdown()
-
-        Log.d(TAG, "Camera released")
-    }
-
-    /**
-     * Get CameraProvider instance
-     */
-    private suspend fun getCameraProvider(): ProcessCameraProvider = suspendCoroutine { continuation ->
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-        cameraProviderFuture.addListener({
-            try {
-                continuation.resume(cameraProviderFuture.get())
-            } catch (e: Exception) {
-                continuation.resumeWithException(e)
-            }
-        }, mainExecutor)
+        cameraController?.unbind()
+        cameraController = null
+        Log.d(TAG, "Camera controller released")
     }
 }
 
