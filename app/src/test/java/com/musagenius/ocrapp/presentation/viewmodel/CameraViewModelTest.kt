@@ -338,22 +338,21 @@ class CameraViewModelTest {
 
     @Test
     fun `toggleGridOverlay should toggle grid visibility`() = runTest {
-        // When - toggle on
-        viewModel.onEvent(CameraEvent.ToggleGridOverlay)
-
-        // Then
+        // Then - observe the full toggle sequence
         viewModel.uiState.test {
-            val state = awaitItem()
-            assertTrue(state.showGridOverlay)
-        }
+            // Initial state - grid off
+            val initialState = awaitItem()
+            assertFalse(initialState.showGridOverlay)
 
-        // When - toggle off
-        viewModel.onEvent(CameraEvent.ToggleGridOverlay)
+            // When - toggle on
+            viewModel.onEvent(CameraEvent.ToggleGridOverlay)
+            val stateOn = awaitItem()
+            assertTrue(stateOn.showGridOverlay)
 
-        // Then
-        viewModel.uiState.test {
-            val state = awaitItem()
-            assertFalse(state.showGridOverlay)
+            // When - toggle off
+            viewModel.onEvent(CameraEvent.ToggleGridOverlay)
+            val stateOff = awaitItem()
+            assertFalse(stateOff.showGridOverlay)
         }
     }
 
