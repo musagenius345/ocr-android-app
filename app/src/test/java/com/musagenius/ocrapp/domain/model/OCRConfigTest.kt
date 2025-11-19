@@ -4,7 +4,24 @@ import org.junit.Assert.*
 import org.junit.Test
 
 /**
- * Unit tests for OCRConfig
+ * Comprehensive unit tests for [OCRConfig] domain model.
+ *
+ * This test suite validates OCR configuration settings including:
+ * - Tessdata filename generation from language codes
+ * - Default configuration values (language, page segmentation mode, engine mode)
+ * - Custom configuration overrides
+ * - PageSegMode enum values mapping to Tesseract constants
+ * - EngineMode enum values mapping to Tesseract constants
+ * - Image preprocessing settings
+ * - Maximum image dimension constraints
+ * - Auto-rotation configuration
+ *
+ * Tests ensure proper configuration object creation, default values,
+ * and correct mapping of enum values to Tesseract API constants.
+ *
+ * @see OCRConfig
+ * @see PageSegMode
+ * @see EngineMode
  */
 class OCRConfigTest {
 

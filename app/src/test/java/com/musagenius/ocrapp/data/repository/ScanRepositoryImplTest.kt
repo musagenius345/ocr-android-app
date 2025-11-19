@@ -19,18 +19,43 @@ import org.mockito.MockitoAnnotations
 import java.util.Date
 
 /**
- * Unit tests for ScanRepositoryImpl
+ * Comprehensive unit tests for [ScanRepositoryImpl].
+ *
+ * This test suite validates the repository implementation for scan persistence including:
+ * - Scan insertion with ScanResult to ScanEntity mapping
+ * - Scan retrieval by ID with Entity to domain model conversion
+ * - All scans retrieval with Flow emissions
+ * - Scan search with query delegation to DAO
+ * - Scan filtering by language
+ * - Scan filtering by date range
+ * - Scan updates (text, title/notes, favorite status)
+ * - Scan deletion
+ * - Error handling for all database operations
+ * - Tag string conversion (comma-separated to list and vice versa)
+ *
+ * Tests verify proper domain-to-entity mapping, Flow-based reactive data,
+ * DAO interaction patterns, and Result wrapper usage.
+ *
+ * @see ScanRepositoryImpl
+ * @see ScanDao
+ * @see ScanEntity
  */
 class ScanRepositoryImplTest {
 
+    /** Mock Room DAO for scan database operations */
     @Mock
     private lateinit var scanDao: ScanDao
 
+    /** System under test */
     private lateinit var repository: ScanRepositoryImpl
 
+    /** Test timestamp shared across test entities */
     private val testTimestamp = Date()
+
+    /** Test image URI */
     private val testUri = Uri.parse("content://test/image.jpg")
 
+    /** Test scan entity representing database row */
     private val testScanEntity = ScanEntity(
         id = 1L,
         timestamp = testTimestamp,
@@ -45,6 +70,7 @@ class ScanRepositoryImplTest {
         modifiedTimestamp = testTimestamp
     )
 
+    /** Test scan result representing domain model */
     private val testScanResult = ScanResult(
         id = 1L,
         timestamp = testTimestamp,
@@ -59,6 +85,10 @@ class ScanRepositoryImplTest {
         modifiedTimestamp = testTimestamp
     )
 
+    /**
+     * Sets up the test environment before each test.
+     * Initializes mocks and creates the repository instance.
+     */
     @Before
     fun setup() {
         MockitoAnnotations.openMocks(this)
