@@ -187,35 +187,33 @@ class CameraViewModelTest {
 
     @Test
     fun `toggleFlash should cycle through flash modes`() = runTest {
-        // When - toggle from OFF to ON
-        viewModel.onEvent(CameraEvent.ToggleFlash)
-
-        // Then
+        // Then - observe the full transition sequence
         viewModel.uiState.test {
-            val state = awaitItem()
-            assertEquals(FlashMode.ON, state.flashMode)
+            // Initial state - OFF
+            val initialState = awaitItem()
+            assertEquals(FlashMode.OFF, initialState.flashMode)
+
+            // When - toggle from OFF to ON
+            viewModel.onEvent(CameraEvent.ToggleFlash)
+            val stateOn = awaitItem()
+            assertEquals(FlashMode.ON, stateOn.flashMode)
+
+            // When - toggle from ON to AUTO
+            viewModel.onEvent(CameraEvent.ToggleFlash)
+            val stateAuto = awaitItem()
+            assertEquals(FlashMode.AUTO, stateAuto.flashMode)
+
+            // When - toggle from AUTO back to OFF
+            viewModel.onEvent(CameraEvent.ToggleFlash)
+            val stateOff = awaitItem()
+            assertEquals(FlashMode.OFF, stateOff.flashMode)
         }
-        verify(cameraManager).setFlashMode(FlashMode.ON)
 
-        // When - toggle from ON to AUTO
-        viewModel.onEvent(CameraEvent.ToggleFlash)
-
-        // Then
-        viewModel.uiState.test {
-            val state = awaitItem()
-            assertEquals(FlashMode.AUTO, state.flashMode)
-        }
-        verify(cameraManager).setFlashMode(FlashMode.AUTO)
-
-        // When - toggle from AUTO back to OFF
-        viewModel.onEvent(CameraEvent.ToggleFlash)
-
-        // Then
-        viewModel.uiState.test {
-            val state = awaitItem()
-            assertEquals(FlashMode.OFF, state.flashMode)
-        }
-        verify(cameraManager).setFlashMode(FlashMode.OFF)
+        // Verify camera manager calls in order
+        val inOrder = inOrder(cameraManager)
+        inOrder.verify(cameraManager).setFlashMode(FlashMode.ON)
+        inOrder.verify(cameraManager).setFlashMode(FlashMode.AUTO)
+        inOrder.verify(cameraManager).setFlashMode(FlashMode.OFF)
     }
 
     // ============ Zoom Tests ============
