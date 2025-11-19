@@ -105,7 +105,7 @@ class LanguageViewModelTest {
      * mock behavior for storage availability (10MB available).
      */
     @Before
-    fun setup() {
+    fun setup() = runTest {
         mocksCloseable = MockitoAnnotations.openMocks(this)
         Dispatchers.setMain(testDispatcher)
 
@@ -177,7 +177,7 @@ class LanguageViewModelTest {
     fun `initial load should handle errors`() = runTest {
         // Given
         whenever(getAvailableLanguagesUseCase.invoke())
-            .thenReturn(Result.Error("Failed to load"))
+            .thenReturn(Result.Error(Exception("Failed to load")))
 
         // When
         viewModel = LanguageViewModel(
@@ -318,7 +318,7 @@ class LanguageViewModelTest {
         whenever(getAvailableLanguagesUseCase.invoke())
             .thenReturn(Result.Success(emptyList()))
         whenever(downloadLanguageUseCase.invoke(any()))
-            .thenReturn(flowOf(Result.Error("Network error")))
+            .thenReturn(flowOf(Result.Error(Exception("Network error"))))
 
         viewModel = LanguageViewModel(
             getAvailableLanguagesUseCase,
@@ -515,7 +515,7 @@ class LanguageViewModelTest {
         whenever(getAvailableLanguagesUseCase.invoke())
             .thenReturn(Result.Success(emptyList()))
         whenever(deleteLanguageUseCase.invoke(any()))
-            .thenReturn(Result.Error("Delete failed"))
+            .thenReturn(Result.Error(Exception("Delete failed")))
 
         viewModel = LanguageViewModel(
             getAvailableLanguagesUseCase,
@@ -598,7 +598,7 @@ class LanguageViewModelTest {
     fun `clearError should clear error message`() = runTest {
         // Given
         whenever(getAvailableLanguagesUseCase.invoke())
-            .thenReturn(Result.Error("Test error"))
+            .thenReturn(Result.Error(Exception("Test error")))
 
         viewModel = LanguageViewModel(
             getAvailableLanguagesUseCase,

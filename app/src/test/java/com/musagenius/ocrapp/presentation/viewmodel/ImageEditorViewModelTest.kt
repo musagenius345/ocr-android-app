@@ -25,6 +25,7 @@ import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.whenever
 
 /**
@@ -307,8 +308,7 @@ class ImageEditorViewModelTest {
 
         viewModel.onEvent(ImageEditorEvent.RotateClockwise)
 
-        whenever(imageEditor.editImage(any(), any(), any()))
-            .thenReturn(Result.Success(testEditedUri))
+        doReturn(Result.Success(testEditedUri)).whenever(imageEditor).editImage(any(), any(), any())
 
         // When
         viewModel.onEvent(ImageEditorEvent.SaveImage)
@@ -333,8 +333,7 @@ class ImageEditorViewModelTest {
             onCancelled = { cancelledCalled = true }
         )
 
-        whenever(imageEditor.editImage(any(), any(), any()))
-            .thenReturn(Result.Success(testEditedUri))
+        doReturn(Result.Success(testEditedUri)).whenever(imageEditor).editImage(any(), any(), any())
 
         // When
         viewModel.onEvent(ImageEditorEvent.SaveImage)
@@ -356,8 +355,7 @@ class ImageEditorViewModelTest {
             onCancelled = { cancelledCalled = true }
         )
 
-        whenever(imageEditor.editImage(any(), any(), any()))
-            .thenReturn(Result.Error("Save failed"))
+        doReturn(Result.Error(Exception("Save failed"))).whenever(imageEditor).editImage(any(), any(), any())
 
         // When
         viewModel.onEvent(ImageEditorEvent.SaveImage)
@@ -422,8 +420,7 @@ class ImageEditorViewModelTest {
             onCancelled = { cancelledCalled = true }
         )
 
-        whenever(imageEditor.editImage(any(), any(), any()))
-            .thenReturn(Result.Success(testEditedUri))
+        doReturn(Result.Success(testEditedUri)).whenever(imageEditor).editImage(any(), any(), any())
 
         // When - no rotation applied
         viewModel.onEvent(ImageEditorEvent.SaveImage)
@@ -468,8 +465,7 @@ class ImageEditorViewModelTest {
             onCancelled = { cancelledCalled = true }
         )
 
-        whenever(imageEditor.editImage(any(), any(), any()))
-            .thenReturn(Result.Error("Save failed"))
+        doReturn(Result.Error(Exception("Save failed"))).whenever(imageEditor).editImage(any(), any(), any())
 
         viewModel.onEvent(ImageEditorEvent.SaveImage)
         advanceUntilIdle()
@@ -514,8 +510,7 @@ class ImageEditorViewModelTest {
             onCancelled = { cancelledCalled = true }
         )
 
-        whenever(imageEditor.editImage(any(), any(), any()))
-            .thenReturn(Result.Success(testEditedUri))
+        doReturn(Result.Success(testEditedUri)).whenever(imageEditor).editImage(any(), any(), any())
 
         // When - save multiple times
         viewModel.onEvent(ImageEditorEvent.SaveImage)
@@ -541,8 +536,7 @@ class ImageEditorViewModelTest {
             onCancelled = { cancelledCalled = true }
         )
 
-        whenever(imageEditor.editImage(any(), any(), any()))
-            .thenReturn(Result.Error("First save failed"))
+        doReturn(Result.Error(Exception("First save failed"))).whenever(imageEditor).editImage(any(), any(), any())
 
         viewModel.onEvent(ImageEditorEvent.SaveImage)
         advanceUntilIdle()
@@ -567,8 +561,7 @@ class ImageEditorViewModelTest {
             onCancelled = { cancelledCalled = true }
         )
 
-        whenever(imageEditor.editImage(any(), any(), any()))
-            .thenReturn(Result.Success(testEditedUri))
+        doReturn(Result.Success(testEditedUri)).whenever(imageEditor).editImage(any(), any(), any())
 
         // When - rotate 4 times (back to 0)
         repeat(4) {

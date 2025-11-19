@@ -58,7 +58,8 @@ class ProcessImageUseCaseTest {
     private val testOCRResult = OCRResult(
         text = "Test extracted text",
         confidence = 0.95f,
-        processingTimeMs = 1500L
+        processingTimeMs = 1500L,
+        language = "eng"
     )
 
     /** Test OCR configuration with English language and preprocessing enabled */
@@ -100,7 +101,7 @@ class ProcessImageUseCaseTest {
     fun `invoke with bitmap should emit loading then error`() = runTest {
         // Given
         whenever(ocrService.recognizeText(any(), any()))
-            .thenReturn(Result.Error("OCR failed"))
+            .thenReturn(Result.Error(Exception("OCR failed")))
 
         // When
         val results = useCase.invoke(mockBitmap, testConfig).toList()
@@ -131,7 +132,7 @@ class ProcessImageUseCaseTest {
     fun `execute with bitmap should handle OCR service errors`() = runTest {
         // Given
         whenever(ocrService.recognizeText(any(), any()))
-            .thenReturn(Result.Error("Processing failed"))
+            .thenReturn(Result.Error(Exception("Processing failed")))
 
         // When
         val result = useCase.execute(mockBitmap, testConfig)
@@ -207,7 +208,7 @@ class ProcessImageUseCaseTest {
         whenever(imageCompressor.loadBitmapFromUri(any(), any()))
             .thenReturn(mockBitmap)
         whenever(ocrService.recognizeText(any(), any()))
-            .thenReturn(Result.Error("OCR failed"))
+            .thenReturn(Result.Error(Exception("OCR failed")))
 
         // When
         useCase.invoke(testUri, testConfig).toList()
@@ -257,7 +258,7 @@ class ProcessImageUseCaseTest {
         whenever(imageCompressor.loadBitmapFromUri(any(), any()))
             .thenReturn(mockBitmap)
         whenever(ocrService.recognizeText(any(), any()))
-            .thenReturn(Result.Error("OCR failed"))
+            .thenReturn(Result.Error(Exception("OCR failed")))
 
         // When
         useCase.execute(testUri, testConfig)

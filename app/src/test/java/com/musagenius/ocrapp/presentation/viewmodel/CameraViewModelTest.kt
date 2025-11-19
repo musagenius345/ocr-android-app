@@ -6,6 +6,7 @@ import androidx.camera.view.PreviewView
 import androidx.lifecycle.LifecycleOwner
 import app.cash.turbine.test
 import com.musagenius.ocrapp.data.camera.CameraManager
+import com.musagenius.ocrapp.data.camera.DocumentScannerManager
 import com.musagenius.ocrapp.data.camera.LowLightDetector
 import com.musagenius.ocrapp.data.utils.ImageCompressor
 import com.musagenius.ocrapp.data.utils.StorageManager
@@ -30,6 +31,7 @@ import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.whenever
 
 /**
@@ -67,6 +69,10 @@ class CameraViewModelTest {
     @Mock
     private lateinit var cameraManager: CameraManager
 
+    /** Mock document scanner manager for document edge detection */
+    @Mock
+    private lateinit var documentScannerManager: DocumentScannerManager
+
     /** Mock image compressor for testing compression logic */
     @Mock
     private lateinit var imageCompressor: ImageCompressor
@@ -92,7 +98,7 @@ class CameraViewModelTest {
     fun setup() {
         MockitoAnnotations.openMocks(this)
         Dispatchers.setMain(testDispatcher)
-        viewModel = CameraViewModel(cameraManager, imageCompressor, storageManager)
+        viewModel = CameraViewModel(cameraManager, documentScannerManager, imageCompressor, storageManager)
     }
 
     @After
@@ -127,8 +133,7 @@ class CameraViewModelTest {
         // Given
         whenever(storageManager.hasAvailableStorage(any())).thenReturn(true)
         whenever(cameraManager.captureImage()).thenReturn(testCapturedUri)
-        whenever(imageCompressor.compressImage(any(), any(), any()))
-            .thenReturn(Result.Success(testCompressedUri))
+        doReturn(Result.Success(testCompressedUri)).whenever(imageCompressor).compressImage(any(), any(), any())
         whenever(imageCompressor.getFileSizeKB(any())).thenReturn(500L)
 
         // When
@@ -172,8 +177,7 @@ class CameraViewModelTest {
         // Given
         whenever(storageManager.hasAvailableStorage(any())).thenReturn(true)
         whenever(cameraManager.captureImage()).thenReturn(testCapturedUri)
-        whenever(imageCompressor.compressImage(any(), any(), any()))
-            .thenReturn(Result.Error("Compression failed"))
+        doReturn(Result.Error(Exception("Compression failed"))).whenever(imageCompressor).compressImage(any(), any(), any())
 
         // When
         viewModel.onEvent(CameraEvent.CaptureImage)
@@ -386,12 +390,12 @@ class CameraViewModelTest {
     @Test
     fun `updateLightingCondition should update lighting state`() = runTest {
         // When
-        viewModel.onEvent(CameraEvent.UpdateLightingCondition(LowLightDetector.LightingCondition.LOW_LIGHT))
+        viewModel.onEvent(CameraEvent.UpdateLightingCondition(LowLightDetector.LightingCondition.LOW))
 
         // Then
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(LowLightDetector.LightingCondition.LOW_LIGHT, state.lightingCondition)
+            assertEquals(LowLightDetector.LightingCondition.LOW, state.lightingCondition)
         }
     }
 

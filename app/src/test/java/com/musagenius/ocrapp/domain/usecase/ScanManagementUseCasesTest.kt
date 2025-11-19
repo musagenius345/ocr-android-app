@@ -124,7 +124,7 @@ class ScanManagementUseCasesTest {
     fun `getAllScansUseCase should propagate repository errors`() = runTest {
         // Given
         whenever(scanRepository.getAllScans())
-            .thenReturn(flowOf(Result.Error("Database error")))
+            .thenReturn(flowOf(Result.Error(Exception("Database error"))))
 
         // When
         val results = getAllScansUseCase().toList()
@@ -140,7 +140,7 @@ class ScanManagementUseCasesTest {
         // Given
         whenever(scanRepository.getAllScans())
             .thenReturn(flowOf(
-                Result.Loading(),
+                Result.Loading,
                 Result.Success(listOf(testScanResult))
             ))
 
@@ -173,7 +173,7 @@ class ScanManagementUseCasesTest {
     fun `deleteScanUseCase should handle deletion errors`() = runTest {
         // Given
         whenever(scanRepository.deleteScan(1L))
-            .thenReturn(Result.Error("Delete failed"))
+            .thenReturn(Result.Error(Exception("Delete failed")))
 
         // When
         val result = deleteScanUseCase(1L)
@@ -187,7 +187,7 @@ class ScanManagementUseCasesTest {
     fun `deleteScanUseCase should handle non-existent scan ID`() = runTest {
         // Given
         whenever(scanRepository.deleteScan(999L))
-            .thenReturn(Result.Error("Scan not found"))
+            .thenReturn(Result.Error(Exception("Scan not found")))
 
         // When
         val result = deleteScanUseCase(999L)
@@ -209,7 +209,7 @@ class ScanManagementUseCasesTest {
 
         // Then
         verify(scanRepository).deleteScan(scanId)
-        verify(scanRepository, never()).deleteScan(argThat { this != scanId })
+        verify(scanRepository, never()).deleteScan(argThat { id -> id != scanId })
     }
 
     // ============ InitializeOCRUseCase Tests ============
@@ -251,7 +251,7 @@ class ScanManagementUseCasesTest {
         // Given
         val config = OCRConfig()
         whenever(ocrService.initialize(config))
-            .thenReturn(Result.Error("Init failed"))
+            .thenReturn(Result.Error(Exception("Init failed")))
 
         // When
         val result = initializeOCRUseCase(config)
@@ -272,7 +272,7 @@ class ScanManagementUseCasesTest {
         initializeOCRUseCase(config)
 
         // Then
-        verify(ocrService).initialize(argThat { it.language == "spa" })
+        verify(ocrService).initialize(argThat { config -> config.language == "spa" })
     }
 
     @Test
@@ -385,7 +385,7 @@ class ScanManagementUseCasesTest {
         initializeOCRUseCase(configWithoutPreprocessing)
 
         // Then
-        verify(ocrService).initialize(argThat { it.preprocessImage })
-        verify(ocrService).initialize(argThat { !it.preprocessImage })
+        verify(ocrService).initialize(argThat { config -> config.preprocessImage })
+        verify(ocrService).initialize(argThat { config -> !config.preprocessImage })
     }
 }

@@ -198,7 +198,7 @@ class HistoryViewModelTest {
     fun `initial load should handle errors gracefully`() = runTest {
         // Given
         whenever(getAllScansUseCase.invoke())
-            .thenReturn(flowOf(Result.Error("Database error")))
+            .thenReturn(flowOf(Result.Error(Exception("Database error"))))
 
         // When
         viewModel = HistoryViewModel(
@@ -431,7 +431,7 @@ class HistoryViewModelTest {
         whenever(getAllScansUseCase.invoke())
             .thenReturn(flowOf(Result.Success(emptyList())))
         whenever(searchScansUseCase.invoke(any()))
-            .thenReturn(flowOf(Result.Error("Search failed")))
+            .thenReturn(flowOf(Result.Error(Exception("Search failed"))))
 
         viewModel = HistoryViewModel(
             getAllScansUseCase,
@@ -494,7 +494,7 @@ class HistoryViewModelTest {
         whenever(getAllScansUseCase.invoke())
             .thenReturn(flowOf(Result.Success(emptyList())))
         whenever(deleteScanUseCase.invoke(any()))
-            .thenReturn(Result.Error("Delete failed"))
+            .thenReturn(Result.Error(Exception("Delete failed")))
 
         viewModel = HistoryViewModel(
             getAllScansUseCase,
@@ -589,7 +589,7 @@ class HistoryViewModelTest {
         whenever(deleteScanUseCase.invoke(any()))
             .thenReturn(Result.Success(Unit))
         whenever(insertScanUseCase.invoke(any()))
-            .thenReturn(Result.Error("Restore failed"))
+            .thenReturn(Result.Error(Exception("Restore failed")))
 
         viewModel = HistoryViewModel(
             getAllScansUseCase,
@@ -659,7 +659,7 @@ class HistoryViewModelTest {
     fun `clearError should clear error message`() = runTest {
         // Given
         whenever(getAllScansUseCase.invoke())
-            .thenReturn(flowOf(Result.Error("Test error")))
+            .thenReturn(flowOf(Result.Error(Exception("Test error"))))
 
         viewModel = HistoryViewModel(
             getAllScansUseCase,

@@ -199,7 +199,7 @@ class ScanDetailViewModelTest {
     fun `initial load should handle scan not found error`() = runTest {
         // Given
         whenever(getScanByIdUseCase.invoke(999L))
-            .thenReturn(flowOf(Result.Error("Scan not found")))
+            .thenReturn(flowOf(Result.Error(Exception("Scan not found"))))
 
         // When
         createViewModel("999")
@@ -308,7 +308,7 @@ class ScanDetailViewModelTest {
         whenever(getScanByIdUseCase.invoke(1L))
             .thenReturn(flowOf(Result.Success(testScanResult)))
         whenever(updateExtractedTextUseCase.invoke(any(), any()))
-            .thenReturn(Result.Error("Save failed"))
+            .thenReturn(Result.Error(Exception("Save failed")))
 
         createViewModel("1")
         advanceUntilIdle()
@@ -448,7 +448,7 @@ class ScanDetailViewModelTest {
         whenever(getScanByIdUseCase.invoke(1L))
             .thenReturn(flowOf(Result.Success(testScanResult)))
         whenever(updateTitleAndNotesUseCase.invoke(any(), any(), any()))
-            .thenReturn(Result.Error("Save failed"))
+            .thenReturn(Result.Error(Exception("Save failed")))
 
         createViewModel("1")
         advanceUntilIdle()
@@ -548,7 +548,7 @@ class ScanDetailViewModelTest {
         whenever(getScanByIdUseCase.invoke(1L))
             .thenReturn(flowOf(Result.Success(testScanResult)))
         whenever(updateFavoriteStatusUseCase.invoke(any(), any()))
-            .thenReturn(Result.Error("Update failed"))
+            .thenReturn(Result.Error(Exception("Update failed")))
 
         createViewModel("1")
         advanceUntilIdle()
@@ -634,7 +634,7 @@ class ScanDetailViewModelTest {
         whenever(getScanByIdUseCase.invoke(1L))
             .thenReturn(flowOf(Result.Success(testScanResult)))
         whenever(deleteScanUseCase.invoke(1L))
-            .thenReturn(Result.Error("Delete failed"))
+            .thenReturn(Result.Error(Exception("Delete failed")))
 
         createViewModel("1")
         advanceUntilIdle()
@@ -684,7 +684,7 @@ class ScanDetailViewModelTest {
     fun `clearError should clear error message`() = runTest {
         // Given
         whenever(getScanByIdUseCase.invoke(1L))
-            .thenReturn(flowOf(Result.Error("Load error")))
+            .thenReturn(flowOf(Result.Error(Exception("Load error"))))
 
         createViewModel("1")
         advanceUntilIdle()

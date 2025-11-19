@@ -28,6 +28,7 @@ import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.whenever
 import java.util.Date
 
@@ -79,7 +80,8 @@ class OCRViewModelTest {
     private val testOCRResult = OCRResult(
         text = "Test extracted text",
         confidence = 0.95f,
-        processingTimeMs = 1500L
+        processingTimeMs = 1500L,
+        language = "eng"
     )
 
     /**
@@ -131,8 +133,7 @@ class OCRViewModelTest {
     @Test
     fun `processImage should update state to processing`() = runTest {
         // Given
-        whenever(processImageUseCase.invoke(any(), any()))
-            .thenReturn(flowOf(Result.Success(testOCRResult)))
+        doReturn(flowOf(Result.Success(testOCRResult))).whenever(processImageUseCase).invoke(any<Uri>(), any<OCRConfig>())
 
         // When
         viewModel.onEvent(OCREvent.ProcessImage(testImageUri, "eng"))
@@ -152,8 +153,7 @@ class OCRViewModelTest {
     @Test
     fun `processImage should extract text successfully`() = runTest {
         // Given
-        whenever(processImageUseCase.invoke(any(), any()))
-            .thenReturn(flowOf(Result.Success(testOCRResult)))
+        doReturn(flowOf(Result.Success(testOCRResult))).whenever(processImageUseCase).invoke(any<Uri>(), any<OCRConfig>())
 
         // When
         viewModel.onEvent(OCREvent.ProcessImage(testImageUri, "eng"))
@@ -179,8 +179,7 @@ class OCRViewModelTest {
     fun `processImage should handle errors gracefully`() = runTest {
         // Given
         val errorMessage = "OCR processing failed"
-        whenever(processImageUseCase.invoke(any(), any()))
-            .thenReturn(flowOf(Result.Error(errorMessage)))
+        doReturn(flowOf(Result.Error(Exception(errorMessage)))).whenever(processImageUseCase).invoke(any<Uri>(), any<OCRConfig>())
 
         // When
         viewModel.onEvent(OCREvent.ProcessImage(testImageUri, "eng"))
@@ -198,7 +197,7 @@ class OCRViewModelTest {
     @Test
     fun `processImage should handle exceptions during processing`() = runTest {
         // Given
-        whenever(processImageUseCase.invoke(any(), any()))
+        whenever(processImageUseCase.invoke(any<Uri>(), any<OCRConfig>()))
             .thenThrow(RuntimeException("Unexpected error"))
 
         // When
@@ -217,8 +216,7 @@ class OCRViewModelTest {
     @Test
     fun `processImage should use correct OCR config`() = runTest {
         // Given
-        whenever(processImageUseCase.invoke(any(), any()))
-            .thenReturn(flowOf(Result.Success(testOCRResult)))
+        doReturn(flowOf(Result.Success(testOCRResult))).whenever(processImageUseCase).invoke(any<Uri>(), any<OCRConfig>())
 
         // When
         viewModel.onEvent(OCREvent.ProcessImage(testImageUri, "spa"))
@@ -241,8 +239,7 @@ class OCRViewModelTest {
         val firstUri = Uri.parse("content://test/image1.jpg")
         val secondUri = Uri.parse("content://test/image2.jpg")
 
-        whenever(processImageUseCase.invoke(any(), any()))
-            .thenReturn(flowOf(Result.Success(testOCRResult)))
+        doReturn(flowOf(Result.Success(testOCRResult))).whenever(processImageUseCase).invoke(any<Uri>(), any<OCRConfig>())
 
         // When
         viewModel.onEvent(OCREvent.ProcessImage(firstUri, "eng"))
@@ -262,8 +259,7 @@ class OCRViewModelTest {
     @Test
     fun `retryProcessing should process same image again`() = runTest {
         // Given - first process an image
-        whenever(processImageUseCase.invoke(any(), any()))
-            .thenReturn(flowOf(Result.Success(testOCRResult)))
+        doReturn(flowOf(Result.Success(testOCRResult))).whenever(processImageUseCase).invoke(any<Uri>(), any<OCRConfig>())
 
         viewModel.onEvent(OCREvent.ProcessImage(testImageUri, "eng"))
         advanceUntilIdle()
@@ -283,7 +279,7 @@ class OCRViewModelTest {
         advanceUntilIdle()
 
         // Then - should not call use case
-        verify(processImageUseCase, never()).invoke(any(), any())
+        verify(processImageUseCase, never()).invoke(any<Uri>(), any<OCRConfig>())
     }
 
     // ============ Save to History Tests ============
@@ -291,8 +287,7 @@ class OCRViewModelTest {
     @Test
     fun `saveToHistory should save scan result`() = runTest {
         // Given - process image first
-        whenever(processImageUseCase.invoke(any(), any()))
-            .thenReturn(flowOf(Result.Success(testOCRResult)))
+        doReturn(flowOf(Result.Success(testOCRResult))).whenever(processImageUseCase).invoke(any<Uri>(), any<OCRConfig>())
         whenever(scanRepository.insertScan(any()))
             .thenReturn(Result.Success(1L))
 
@@ -320,8 +315,7 @@ class OCRViewModelTest {
     @Test
     fun `saveToHistory with empty text should not save`() = runTest {
         // Given - no text extracted
-        whenever(processImageUseCase.invoke(any(), any()))
-            .thenReturn(flowOf(Result.Success(OCRResult("", 0f, 0L))))
+        doReturn(flowOf(Result.Success(OCRResult("", 0f, 0L, "eng")))).whenever(processImageUseCase).invoke(any<Uri>(), any<OCRConfig>())
 
         viewModel.onEvent(OCREvent.ProcessImage(testImageUri, "eng"))
         advanceUntilIdle()
@@ -337,10 +331,9 @@ class OCRViewModelTest {
     @Test
     fun `saveToHistory should handle repository errors`() = runTest {
         // Given
-        whenever(processImageUseCase.invoke(any(), any()))
-            .thenReturn(flowOf(Result.Success(testOCRResult)))
+        doReturn(flowOf(Result.Success(testOCRResult))).whenever(processImageUseCase).invoke(any<Uri>(), any<OCRConfig>())
         whenever(scanRepository.insertScan(any()))
-            .thenReturn(Result.Error("Database error"))
+            .thenReturn(Result.Error(Exception("Database error")))
 
         viewModel.onEvent(OCREvent.ProcessImage(testImageUri, "eng"))
         advanceUntilIdle()
@@ -362,10 +355,9 @@ class OCRViewModelTest {
     fun `saveToHistory should generate appropriate title from text`() = runTest {
         // Given - long text
         val longText = "This is a very long text that should be truncated when used as a title for the scan"
-        val longTextResult = OCRResult(longText, 0.9f, 1000L)
+        val longTextResult = OCRResult(longText, 0.9f, 1000L, "eng")
 
-        whenever(processImageUseCase.invoke(any(), any()))
-            .thenReturn(flowOf(Result.Success(longTextResult)))
+        doReturn(flowOf(Result.Success(longTextResult))).whenever(processImageUseCase).invoke(any<Uri>(), any<OCRConfig>())
         whenever(scanRepository.insertScan(any()))
             .thenReturn(Result.Success(1L))
 
@@ -388,8 +380,7 @@ class OCRViewModelTest {
     @Test
     fun `dismissError should clear error message`() = runTest {
         // Given - create error state
-        whenever(processImageUseCase.invoke(any(), any()))
-            .thenReturn(flowOf(Result.Error("Test error")))
+        doReturn(flowOf(Result.Error(Exception("Test error")))).whenever(processImageUseCase).invoke(any<Uri>(), any<OCRConfig>())
 
         viewModel.onEvent(OCREvent.ProcessImage(testImageUri, "eng"))
         advanceUntilIdle()
@@ -409,8 +400,7 @@ class OCRViewModelTest {
     @Test
     fun `cancelProcessing should stop OCR and update state`() = runTest {
         // Given
-        whenever(processImageUseCase.invoke(any(), any()))
-            .thenReturn(flowOf(Result.Success(testOCRResult)))
+        doReturn(flowOf(Result.Success(testOCRResult))).whenever(processImageUseCase).invoke(any<Uri>(), any<OCRConfig>())
 
         viewModel.onEvent(OCREvent.ProcessImage(testImageUri, "eng"))
 
@@ -432,8 +422,7 @@ class OCRViewModelTest {
         // Given
         `when`(ocrService.stop()).thenThrow(RuntimeException("Stop failed"))
 
-        whenever(processImageUseCase.invoke(any(), any()))
-            .thenReturn(flowOf(Result.Success(testOCRResult)))
+        doReturn(flowOf(Result.Success(testOCRResult))).whenever(processImageUseCase).invoke(any<Uri>(), any<OCRConfig>())
 
         viewModel.onEvent(OCREvent.ProcessImage(testImageUri, "eng"))
 
@@ -453,8 +442,7 @@ class OCRViewModelTest {
     @Test
     fun `setImageUri should process image with default language`() = runTest {
         // Given
-        whenever(processImageUseCase.invoke(any(), any()))
-            .thenReturn(flowOf(Result.Success(testOCRResult)))
+        doReturn(flowOf(Result.Success(testOCRResult))).whenever(processImageUseCase).invoke(any<Uri>(), any<OCRConfig>())
 
         // When
         viewModel.setImageUri(testImageUri)
@@ -467,8 +455,7 @@ class OCRViewModelTest {
     @Test
     fun `setImageUri should process image with custom language`() = runTest {
         // Given
-        whenever(processImageUseCase.invoke(any(), any()))
-            .thenReturn(flowOf(Result.Success(testOCRResult)))
+        doReturn(flowOf(Result.Success(testOCRResult))).whenever(processImageUseCase).invoke(any<Uri>(), any<OCRConfig>())
 
         // When
         viewModel.setImageUri(testImageUri, "fra")
@@ -483,8 +470,7 @@ class OCRViewModelTest {
     @Test
     fun `onCleared should cleanup resources`() = runTest {
         // Given
-        whenever(processImageUseCase.invoke(any(), any()))
-            .thenReturn(flowOf(Result.Success(testOCRResult)))
+        doReturn(flowOf(Result.Success(testOCRResult))).whenever(processImageUseCase).invoke(any<Uri>(), any<OCRConfig>())
 
         viewModel.onEvent(OCREvent.ProcessImage(testImageUri, "eng"))
 

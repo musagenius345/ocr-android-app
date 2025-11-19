@@ -108,7 +108,7 @@ class SearchScansUseCaseTest {
         // Given
         val query = "test"
         whenever(scanRepository.searchScans(query))
-            .thenReturn(flowOf(Result.Error("Search failed")))
+            .thenReturn(flowOf(Result.Error(Exception("Search failed"))))
 
         // When
         val results = useCase.invoke(query).toList()
