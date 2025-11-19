@@ -96,6 +96,9 @@ class LanguageViewModelTest {
         fileSize = 6_000_000L
     )
 
+    /** AutoCloseable handle for Mockito mocks to prevent resource leaks */
+    private lateinit var mocksCloseable: AutoCloseable
+
     /**
      * Sets up the test environment before each test.
      * Initializes mocks, sets up test dispatcher, and configures default
@@ -103,7 +106,7 @@ class LanguageViewModelTest {
      */
     @Before
     fun setup() {
-        MockitoAnnotations.openMocks(this)
+        mocksCloseable = MockitoAnnotations.openMocks(this)
         Dispatchers.setMain(testDispatcher)
 
         // Default mocks
@@ -111,10 +114,11 @@ class LanguageViewModelTest {
     }
 
     /**
-     * Cleans up after each test by resetting the main dispatcher.
+     * Cleans up after each test by closing Mockito mocks and resetting the main dispatcher.
      */
     @After
     fun tearDown() {
+        mocksCloseable.close()
         Dispatchers.resetMain()
     }
 

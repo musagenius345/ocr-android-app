@@ -6,7 +6,9 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
-import org.mockito.MockitoAnnotations
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * Comprehensive unit tests for [ImagePreprocessor].
@@ -26,8 +28,13 @@ import org.mockito.MockitoAnnotations
  * to validate preprocessing logic without requiring actual image files.
  * The focus is on algorithmic correctness rather than visual quality.
  *
+ * Uses Robolectric to provide Android framework classes (Bitmap, Color)
+ * in a local JVM test environment without requiring an emulator.
+ *
  * @see ImagePreprocessor
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28])
 class ImagePreprocessorTest {
 
     /** System under test */
@@ -39,7 +46,6 @@ class ImagePreprocessorTest {
      */
     @Before
     fun setup() {
-        MockitoAnnotations.openMocks(this)
         preprocessor = ImagePreprocessor()
     }
 

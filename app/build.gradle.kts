@@ -143,6 +143,7 @@ dependencies {
     testImplementation("app.cash.turbine:turbine:1.2.0")
     testImplementation("com.google.dagger:hilt-android-testing:2.55")
     kspTest("com.google.dagger:hilt-android-compiler:2.55")
+    testImplementation("org.robolectric:robolectric:4.14.1")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation(composeBom)
