@@ -5,11 +5,17 @@ import com.musagenius.ocrapp.data.local.entity.ScanEntity
 import com.musagenius.ocrapp.domain.model.ScanResult
 import org.junit.Assert.*
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.util.Date
 
 /**
  * Unit tests for ScanMapper
+ * Uses Robolectric for Android framework dependencies (Uri)
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class ScanMapperTest {
 
     private val testTimestamp = Date()

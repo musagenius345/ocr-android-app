@@ -12,20 +12,27 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.MockitoAnnotations
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.util.Date
 
 /**
  * Unit tests for ScanRepositoryImpl
+ * Uses Robolectric for Android framework dependencies (Uri)
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class ScanRepositoryImplTest {
 
     @Mock
     private lateinit var scanDao: ScanDao
 
     private lateinit var repository: ScanRepositoryImpl
+    private lateinit var mocksCloseable: AutoCloseable
 
     private val testTimestamp = Date()
     private val testUri = Uri.parse("content://test/image.jpg")
@@ -60,8 +67,13 @@ class ScanRepositoryImplTest {
 
     @Before
     fun setup() {
-        MockitoAnnotations.openMocks(this)
+        mocksCloseable = MockitoAnnotations.openMocks(this)
         repository = ScanRepositoryImpl(scanDao)
+    }
+
+    @org.junit.After
+    fun tearDown() {
+        mocksCloseable.close()
     }
 
     @Test
