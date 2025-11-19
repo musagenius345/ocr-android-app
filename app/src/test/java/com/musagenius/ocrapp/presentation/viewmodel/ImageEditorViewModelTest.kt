@@ -27,6 +27,8 @@ import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.whenever
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
  * JUnit rule that sets up and tears down a TestDispatcher as the Main dispatcher.
@@ -65,6 +67,7 @@ class MainDispatcherRule(
  * @see ImageEditorViewModel
  * @see ImageEditor
  */
+@RunWith(RobolectricTestRunner::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class ImageEditorViewModelTest {
 

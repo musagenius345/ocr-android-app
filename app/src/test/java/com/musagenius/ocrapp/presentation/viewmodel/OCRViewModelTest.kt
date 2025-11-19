@@ -24,7 +24,9 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.Mock
+import org.robolectric.RobolectricTestRunner
 import org.mockito.Mockito.*
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.any
@@ -48,6 +50,7 @@ import java.util.Date
  *
  * @see OCRViewModel
  */
+@RunWith(RobolectricTestRunner::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class OCRViewModelTest {
 
