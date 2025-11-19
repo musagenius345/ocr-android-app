@@ -4,7 +4,21 @@ import org.junit.Assert.*
 import org.junit.Test
 
 /**
- * Unit tests for ImageQualityAssessment
+ * Comprehensive unit tests for [ImageQualityAssessment] domain model.
+ *
+ * This test suite validates image quality assessment functionality including:
+ * - Preprocessing need detection based on brightness and blur thresholds
+ * - Blur score evaluation (Laplacian variance based)
+ * - Brightness score evaluation (0.0 = dark, 1.0 = bright)
+ * - Resolution acceptability checking
+ * - Quality description generation based on multiple factors
+ * - Warning message accumulation for quality issues
+ * - Acceptance criteria validation
+ *
+ * Tests ensure proper quality assessment logic, threshold validation,
+ * and user-facing quality feedback messages.
+ *
+ * @see ImageQualityAssessment
  */
 class ImageQualityTest {
 

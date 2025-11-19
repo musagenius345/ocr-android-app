@@ -199,20 +199,23 @@ class CameraManager @Inject constructor(
 
     /**
      * Focus on a point
-     * @param x X coordinate (0-1)
-     * @param y Y coordinate (0-1)
-     * @param width Preview width
-     * @param height Preview height
+     * @param x X coordinate (0-1, normalized)
+     * @param y Y coordinate (0-1, normalized)
+     * @param width Preview width in pixels
+     * @param height Preview height in pixels
      */
     fun focusOnPoint(x: Float, y: Float, width: Int, height: Int) {
         val factory = previewView?.meteringPointFactory ?: return
-        val point = factory.createPoint(x, y)
+        // Convert normalized coordinates (0-1) to pixel coordinates
+        val pixelX = x * width
+        val pixelY = y * height
+        val point = factory.createPoint(pixelX, pixelY)
         val action = FocusMeteringAction.Builder(point)
             .setAutoCancelDuration(3, java.util.concurrent.TimeUnit.SECONDS)
             .build()
 
         camera?.cameraControl?.startFocusAndMetering(action)
-        Log.d(TAG, "Focus requested at: ($x, $y)")
+        Log.d(TAG, "Focus requested at normalized: ($x, $y), pixels: ($pixelX, $pixelY)")
     }
 
     /**

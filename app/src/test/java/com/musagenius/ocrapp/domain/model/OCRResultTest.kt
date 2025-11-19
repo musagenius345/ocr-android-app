@@ -4,7 +4,22 @@ import org.junit.Assert.*
 import org.junit.Test
 
 /**
- * Unit tests for OCRResult
+ * Comprehensive unit tests for [OCRResult] domain model.
+ *
+ * This test suite validates OCR result data and utility methods including:
+ * - Confidence threshold validation (hasAcceptableConfidence)
+ * - Text presence checking (hasText)
+ * - Confidence percentage formatting (0.856 → "85%")
+ * - Processing time conversion (milliseconds to seconds)
+ * - Word count calculation from extracted text
+ * - Character count calculation
+ * - Empty result factory method
+ * - Language code preservation
+ *
+ * Tests ensure proper result object creation, data validation,
+ * formatting utilities, and statistical calculations from OCR output.
+ *
+ * @see OCRResult
  */
 class OCRResultTest {
 
