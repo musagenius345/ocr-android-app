@@ -10,6 +10,8 @@
     <!-- Camera Screen -->
     <string name="camera_permission_required">Camera permission is required to scan documents</string>
     <string name="capture_button">Capture</string>
+    <string name="scan_document_button">Scan Document</string>
+    <string name="scan_document_description">Scan document with edge detection</string>
     <string name="flash_on">Flash On</string>
     <string name="flash_off">Flash Off</string>
 
@@ -19,6 +21,12 @@
     <string name="ocr_success">Text extracted successfully</string>
     <string name="ocr_failed">Failed to extract text</string>
     <string name="no_text_found">No text found in image</string>
+
+    <!-- Document Scanner -->
+    <string name="scanner_gms_unavailable">Document scanner requires Google Play Services. Please install or update Google Play Services.</string>
+    <string name="scanner_failed">Failed to launch document scanner</string>
+    <string name="scanner_no_pages">No pages were scanned</string>
+    <string name="scanner_processing">Processing scanned document...</string>
 
     <!-- History Screen -->
     <string name="history_empty">No scanned documents yet</string>

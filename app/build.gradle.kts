@@ -140,6 +140,9 @@ dependencies {
     // ExifInterface for image metadata
     implementation("androidx.exifinterface:exifinterface:1.3.7")
 
+    // ML Kit Document Scanner
+    implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:5.14.2")

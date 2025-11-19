@@ -2,6 +2,7 @@ package com.musagenius.ocrapp.di
 
 import android.content.Context
 import com.musagenius.ocrapp.data.camera.CameraManager
+import com.musagenius.ocrapp.data.camera.DocumentScannerManager
 import com.musagenius.ocrapp.data.camera.LowLightDetector
 import com.musagenius.ocrapp.data.utils.ImageCompressor
 import com.musagenius.ocrapp.data.utils.StorageManager
@@ -62,5 +63,13 @@ object UtilityModule {
         @ApplicationContext context: Context
     ): StorageManager {
         return StorageManager(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideDocumentScannerManager(
+        @ApplicationContext context: Context
+    ): DocumentScannerManager {
+        return DocumentScannerManager(context)
     }
 }

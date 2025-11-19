@@ -2,14 +2,18 @@ package com.musagenius.ocrapp.presentation.viewmodel
 
 import android.net.Uri
 import android.util.Log
+import androidx.activity.result.IntentSenderRequest
 import androidx.camera.view.PreviewView
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import com.musagenius.ocrapp.data.camera.CameraManager
+import com.musagenius.ocrapp.data.camera.DocumentScannerManager
 import com.musagenius.ocrapp.data.camera.LowLightDetector
 import com.musagenius.ocrapp.data.utils.ImageCompressor
 import com.musagenius.ocrapp.data.utils.StorageManager
+import com.musagenius.ocrapp.domain.model.Result
 import com.musagenius.ocrapp.presentation.ui.camera.CameraEvent
 import com.musagenius.ocrapp.presentation.ui.camera.CameraFacing
 import com.musagenius.ocrapp.presentation.ui.camera.CameraResolution
@@ -29,12 +33,17 @@ import javax.inject.Inject
 @HiltViewModel
 class CameraViewModel @Inject constructor(
     private val cameraManager: CameraManager,
+    private val documentScannerManager: DocumentScannerManager,
     private val imageCompressor: ImageCompressor,
     private val storageManager: StorageManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CameraUiState())
     val uiState: StateFlow<CameraUiState> = _uiState.asStateFlow()
+
+    // Document scanner intent request for launching the scanner
+    private val _scannerIntentRequest = MutableStateFlow<IntentSenderRequest?>(null)
+    val scannerIntentRequest: StateFlow<IntentSenderRequest?> = _scannerIntentRequest.asStateFlow()
 
     // Store references for camera restart operations
     private var lifecycleOwner: LifecycleOwner? = null
@@ -50,6 +59,7 @@ class CameraViewModel @Inject constructor(
     fun onEvent(event: CameraEvent) {
         when (event) {
             is CameraEvent.CaptureImage -> captureImage()
+            is CameraEvent.ScanDocument -> launchDocumentScanner()
             is CameraEvent.ToggleFlash -> toggleFlash()
             is CameraEvent.PickFromGallery -> {
                 // Will be handled by the UI layer directly
@@ -178,6 +188,157 @@ class CameraViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /**
+     * Launch ML Kit Document Scanner
+     */
+    private fun launchDocumentScanner() {
+        viewModelScope.launch {
+            try {
+                // Check if scanner is available
+                if (!documentScannerManager.isAvailable()) {
+                    _uiState.update {
+                        it.copy(
+                            error = "Document scanner requires Google Play Services. Please install or update Google Play Services."
+                        )
+                    }
+                    Log.w(TAG, "Google Play Services not available for document scanner")
+                    return@launch
+                }
+
+                _uiState.update { it.copy(isLoading = true, error = null) }
+
+                // Get scanner intent
+                val result = documentScannerManager.getScannerIntent()
+
+                when (result) {
+                    is Result.Success -> {
+                        // Emit the intent request for the UI to launch
+                        _scannerIntentRequest.value = result.data
+                        _uiState.update { it.copy(isLoading = false) }
+                        Log.d(TAG, "Document scanner intent ready")
+                    }
+                    is Result.Error -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                error = result.message ?: "Failed to launch document scanner"
+                            )
+                        }
+                        Log.e(TAG, "Failed to get scanner intent", result.exception)
+                    }
+                    is Result.Loading -> {
+                        // Should not happen with getScannerIntent
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Unexpected error launching document scanner", e)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "Failed to launch document scanner: ${e.localizedMessage}"
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Handle document scanner result
+     * Called by the UI after the scanner activity returns
+     */
+    fun handleScannerResult(scanResult: GmsDocumentScanningResult?) {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isProcessing = true, error = null) }
+
+                // Clear the intent request
+                _scannerIntentRequest.value = null
+
+                val result = documentScannerManager.processResult(scanResult)
+
+                when (result) {
+                    is Result.Success -> {
+                        val scannedUris = result.data
+                        Log.d(TAG, "Document scanner returned ${scannedUris.size} page(s)")
+
+                        // For now, just use the first page
+                        // TODO: In the future, handle multiple pages
+                        if (scannedUris.isNotEmpty()) {
+                            val firstPageUri = scannedUris.first()
+
+                            // Compress the scanned image
+                            val compressResult = imageCompressor.compressImage(
+                                sourceUri = firstPageUri,
+                                quality = 85,
+                                maxSize = 2048
+                            )
+
+                            compressResult.fold(
+                                onSuccess = { compressedUri ->
+                                    val fileSizeKB = imageCompressor.getFileSizeKB(compressedUri)
+                                    Log.d(TAG, "Scanned image compressed: $compressedUri, size: ${fileSizeKB}KB")
+
+                                    _uiState.update {
+                                        it.copy(
+                                            isProcessing = false,
+                                            capturedImageUri = compressedUri
+                                        )
+                                    }
+                                },
+                                onFailure = { error ->
+                                    Log.e(TAG, "Failed to compress scanned image", error)
+                                    // Fall back to raw scanned image if compression fails
+                                    _uiState.update {
+                                        it.copy(
+                                            isProcessing = false,
+                                            capturedImageUri = firstPageUri,
+                                            error = "Image compression failed, using original"
+                                        )
+                                    }
+                                }
+                            )
+                        } else {
+                            _uiState.update {
+                                it.copy(
+                                    isProcessing = false,
+                                    error = "No pages were scanned"
+                                )
+                            }
+                        }
+                    }
+                    is Result.Error -> {
+                        _uiState.update {
+                            it.copy(
+                                isProcessing = false,
+                                error = result.message ?: "Failed to process scanned document"
+                            )
+                        }
+                        Log.e(TAG, "Failed to process scanner result", result.exception)
+                    }
+                    is Result.Loading -> {
+                        // Should not happen with processResult
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Unexpected error processing scanner result", e)
+                _uiState.update {
+                    it.copy(
+                        isProcessing = false,
+                        error = "Failed to process scanned document: ${e.localizedMessage}"
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Clear scanner intent request (e.g., if user cancels)
+     */
+    fun clearScannerIntentRequest() {
+        _scannerIntentRequest.value = null
+        _uiState.update { it.copy(isLoading = false) }
     }
 
     /**

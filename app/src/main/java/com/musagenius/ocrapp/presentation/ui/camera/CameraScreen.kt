@@ -6,6 +6,7 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
@@ -67,6 +68,26 @@ fun CameraScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let { onGalleryImageSelected(it) }
+    }
+
+    // Document scanner launcher
+    val scannerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val scanResult = GmsDocumentScanningResult.fromActivityResultIntent(result.data)
+            viewModel.handleScannerResult(scanResult)
+        } else {
+            viewModel.clearScannerIntentRequest()
+        }
+    }
+
+    // Observe scanner intent request and launch scanner
+    val scannerIntentRequest by viewModel.scannerIntentRequest.collectAsState()
+    LaunchedEffect(scannerIntentRequest) {
+        scannerIntentRequest?.let { request ->
+            scannerLauncher.launch(request)
+        }
     }
 
     // Permission rationale dialog state
@@ -270,6 +291,10 @@ fun CameraScreen(
                                 showShutterAnimation = true
                                 viewModel.onEvent(CameraEvent.CaptureImage)
                             },
+                            onScanDocumentClick = {
+                                haptic.performLightTap()
+                                viewModel.onEvent(CameraEvent.ScanDocument)
+                            },
                             onGalleryClick = {
                                 haptic.performLightTap()
                                 galleryLauncher.launch("image/*")
@@ -408,6 +433,7 @@ fun CameraControls(
     modifier: Modifier = Modifier,
     isProcessing: Boolean,
     onCaptureClick: () -> Unit,
+    onScanDocumentClick: () -> Unit,
     onGalleryClick: () -> Unit
 ) {
     Row(
@@ -468,8 +494,22 @@ fun CameraControls(
             }
         }
 
-        // Placeholder for symmetry (or future feature)
-        Spacer(modifier = Modifier.size(56.dp))
+        // Document scanner button
+        IconButton(
+            onClick = onScanDocumentClick,
+            enabled = !isProcessing,
+            modifier = Modifier
+                .size(56.dp)
+                .semantics {
+                    contentDescription = "Scan document with edge detection"
+                }
+        ) {
+            Icon(
+                imageVector = Icons.Default.DocumentScanner,
+                contentDescription = "Scan Document",
+                modifier = Modifier.size(32.dp)
+            )
+        }
     }
 }
 

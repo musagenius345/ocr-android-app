@@ -110,6 +110,7 @@ enum class FlashMode {
  */
 sealed class CameraEvent {
     data object CaptureImage : CameraEvent()
+    data object ScanDocument : CameraEvent()
     data object ToggleFlash : CameraEvent()
     data object PickFromGallery : CameraEvent()
     data object DismissError : CameraEvent()
