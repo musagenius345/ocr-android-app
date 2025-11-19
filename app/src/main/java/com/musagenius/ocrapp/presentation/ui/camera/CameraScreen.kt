@@ -17,7 +17,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -32,7 +31,6 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
 import com.musagenius.ocrapp.data.camera.LowLightDetector
-import com.musagenius.ocrapp.presentation.ui.camera.DocumentOverlay
 import com.musagenius.ocrapp.presentation.ui.components.GridOverlay
 import com.musagenius.ocrapp.presentation.ui.components.ShutterAnimation
 import com.musagenius.ocrapp.presentation.ui.components.rememberHapticFeedback
@@ -182,17 +180,6 @@ fun CameraScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .onSizeChanged { size ->
-                                // Track preview size for document overlay
-                                with(density) {
-                                    viewModel.onEvent(
-                                        CameraEvent.UpdatePreviewSize(
-                                            width = size.width.toFloat(),
-                                            height = size.height.toFloat()
-                                        )
-                                    )
-                                }
-                            }
                             .pointerInput(Unit) {
                                 // Pinch-to-zoom gesture
                                 detectTransformGestures { _, _, zoom, _ ->
@@ -218,15 +205,6 @@ fun CameraScreen(
                         // Grid overlay
                         if (uiState.showGridOverlay) {
                             GridOverlay()
-                        }
-
-                        // Document edge detection overlay
-                        if (uiState.showDocumentOverlay && uiState.previewWidth > 0 && uiState.previewHeight > 0) {
-                            DocumentOverlay(
-                                corners = uiState.documentCorners,
-                                viewWidth = uiState.previewWidth,
-                                viewHeight = uiState.previewHeight
-                            )
                         }
 
                         // Low light warning
@@ -264,17 +242,12 @@ fun CameraScreen(
                                 .padding(16.dp),
                             zoomRatio = uiState.zoomRatio,
                             showGridOverlay = uiState.showGridOverlay,
-                            showDocumentOverlay = uiState.showDocumentOverlay,
                             cameraFacing = uiState.cameraFacing,
                             currentResolution = uiState.resolution,
                             onZoomChange = { viewModel.onEvent(CameraEvent.SetZoom(it)) },
                             onToggleGrid = {
                                 haptic.performLightTap()
                                 viewModel.onEvent(CameraEvent.ToggleGridOverlay)
-                            },
-                            onToggleDocumentOverlay = {
-                                haptic.performLightTap()
-                                viewModel.onEvent(CameraEvent.ToggleDocumentOverlay)
                             },
                             onFlipCamera = {
                                 haptic.performLightTap()
@@ -565,12 +538,10 @@ fun CameraTopControls(
     modifier: Modifier = Modifier,
     zoomRatio: Float,
     showGridOverlay: Boolean,
-    showDocumentOverlay: Boolean,
     cameraFacing: CameraFacing,
     currentResolution: CameraResolution,
     onZoomChange: (Float) -> Unit,
     onToggleGrid: () -> Unit,
-    onToggleDocumentOverlay: () -> Unit,
     onFlipCamera: () -> Unit,
     onShowResolutionDialog: () -> Unit
 ) {
@@ -635,33 +606,6 @@ fun CameraTopControls(
                 imageVector = Icons.Default.GridOn,
                 contentDescription = "Grid",
                 tint = if (showGridOverlay) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                }
-            )
-        }
-
-        // Document overlay toggle button
-        FilledIconButton(
-            onClick = onToggleDocumentOverlay,
-            modifier = Modifier
-                .size(48.dp)
-                .semantics {
-                    contentDescription = if (showDocumentOverlay) "Hide document overlay" else "Show document overlay"
-                },
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = if (showDocumentOverlay) {
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
-                } else {
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
-                }
-            )
-        ) {
-            Icon(
-                imageVector = Icons.Default.CropFree,
-                contentDescription = "Document Detection",
-                tint = if (showDocumentOverlay) {
                     MaterialTheme.colorScheme.onPrimaryContainer
                 } else {
                     MaterialTheme.colorScheme.onSurface

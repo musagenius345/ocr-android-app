@@ -36,7 +36,6 @@ import kotlin.coroutines.suspendCoroutine
 @ActivityRetainedScoped
 class CameraManager @Inject constructor(
     private val context: Context,
-    private val documentEdgeDetector: DocumentEdgeDetector,
     private val lowLightDetector: LowLightDetector
 ) {
     private var cameraProvider: ProcessCameraProvider? = null
@@ -54,9 +53,6 @@ class CameraManager @Inject constructor(
 
     // Atomic flag to skip frames while processing
     private val isProcessingFrame = AtomicBoolean(false)
-
-    // Callback for edge detection results
-    private var edgeDetectionCallback: ((DocumentEdgeDetector.DocumentCorners?) -> Unit)? = null
 
     // Callback for lighting condition updates
     private var lightingConditionCallback: ((LowLightDetector.LightingCondition) -> Unit)? = null
@@ -110,15 +106,15 @@ class CameraManager @Inject constructor(
                 .setTargetResolution(targetResolution)
                 .build()
 
-            // Set up ImageAnalysis for edge detection
+            // Set up ImageAnalysis for low light detection
             imageAnalysis = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .setTargetResolution(targetResolution)
                 .build()
                 .also { analysis ->
                     analysis.setAnalyzer(executor) { imageProxy ->
-                        // Process image for edge detection on background thread
-                        processImageForEdgeDetection(imageProxy)
+                        // Process image for low light on background thread
+                        processImageForAnalysis(imageProxy)
                     }
                 }
 
@@ -269,20 +265,6 @@ class CameraManager @Inject constructor(
     }
 
     /**
-     * Set callback for edge detection results
-     */
-    fun setEdgeDetectionCallback(callback: (DocumentEdgeDetector.DocumentCorners?) -> Unit) {
-        edgeDetectionCallback = callback
-    }
-
-    /**
-     * Clear edge detection callback
-     */
-    fun clearEdgeDetectionCallback() {
-        edgeDetectionCallback = null
-    }
-
-    /**
      * Set callback for lighting condition updates
      */
     fun setLightingConditionCallback(callback: (LowLightDetector.LightingCondition) -> Unit) {
@@ -297,15 +279,14 @@ class CameraManager @Inject constructor(
     }
 
     /**
-     * Process image for edge detection and lighting analysis
+     * Process image for lighting analysis
      * Called by ImageAnalysis analyzer
      */
-    private fun processImageForEdgeDetection(imageProxy: ImageProxy) {
-        val edgeCallback = edgeDetectionCallback
+    private fun processImageForAnalysis(imageProxy: ImageProxy) {
         val lightCallback = lightingConditionCallback
 
         // Only process if there's at least one callback registered
-        if (edgeCallback == null && lightCallback == null) {
+        if (lightCallback == null) {
             imageProxy.close()
             return
         }
@@ -329,13 +310,6 @@ class CameraManager @Inject constructor(
             try {
                 // Perform heavy work on Default dispatcher
                 withContext(Dispatchers.Default) {
-                    // Detect edges if callback is registered
-                    val corners = if (edgeCallback != null) {
-                        documentEdgeDetector.detectEdges(imageProxy)
-                    } else {
-                        null
-                    }
-
                     // Detect lighting condition if callback is registered
                     val lightCondition = if (lightCallback != null) {
                         lowLightDetector.detectLightingCondition(imageProxy)
@@ -345,7 +319,6 @@ class CameraManager @Inject constructor(
 
                     // Post results on main thread
                     withContext(Dispatchers.Main) {
-                        edgeCallback?.invoke(corners)
                         lightCondition?.let { lightCallback?.invoke(it) }
                     }
                 }
@@ -372,7 +345,6 @@ class CameraManager @Inject constructor(
         preview = null
         imageCapture = null
         imageAnalysis = null
-        edgeDetectionCallback = null
         lightingConditionCallback = null
         Log.d(TAG, "Camera released")
     }

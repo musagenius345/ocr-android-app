@@ -7,7 +7,6 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.musagenius.ocrapp.data.camera.CameraManager
-import com.musagenius.ocrapp.data.camera.DocumentEdgeDetector
 import com.musagenius.ocrapp.data.camera.LowLightDetector
 import com.musagenius.ocrapp.data.utils.ImageCompressor
 import com.musagenius.ocrapp.data.utils.StorageManager
@@ -61,9 +60,6 @@ class CameraViewModel @Inject constructor(
             is CameraEvent.SetExposure -> setExposure(event.compensation)
             is CameraEvent.FlipCamera -> flipCamera()
             is CameraEvent.ToggleGridOverlay -> toggleGridOverlay()
-            is CameraEvent.ToggleDocumentOverlay -> toggleDocumentOverlay()
-            is CameraEvent.UpdateDocumentCorners -> updateDocumentCorners(event.corners)
-            is CameraEvent.UpdatePreviewSize -> updatePreviewSize(event.width, event.height)
             is CameraEvent.UpdateLightingCondition -> updateLightingCondition(event.condition)
             is CameraEvent.DismissLowLightWarning -> dismissLowLightWarning()
             is CameraEvent.ShowResolutionDialog -> showResolutionDialog()
@@ -94,11 +90,6 @@ class CameraViewModel @Inject constructor(
                     cameraFacing = _uiState.value.cameraFacing,
                     resolution = _uiState.value.resolution
                 )
-
-                // Set up edge detection callback
-                cameraManager.setEdgeDetectionCallback { corners ->
-                    onEvent(CameraEvent.UpdateDocumentCorners(corners))
-                }
 
                 // Set up lighting condition callback
                 cameraManager.setLightingConditionCallback { condition ->
@@ -274,29 +265,6 @@ class CameraViewModel @Inject constructor(
     }
 
     /**
-     * Toggle document edge detection overlay
-     */
-    private fun toggleDocumentOverlay() {
-        _uiState.update { it.copy(showDocumentOverlay = !it.showDocumentOverlay) }
-        Log.d(TAG, "Document overlay: ${_uiState.value.showDocumentOverlay}")
-    }
-
-    /**
-     * Update detected document corners
-     */
-    private fun updateDocumentCorners(corners: DocumentEdgeDetector.DocumentCorners?) {
-        _uiState.update { it.copy(documentCorners = corners) }
-    }
-
-    /**
-     * Update preview size for overlay calculations
-     */
-    private fun updatePreviewSize(width: Float, height: Float) {
-        _uiState.update { it.copy(previewWidth = width, previewHeight = height) }
-        Log.d(TAG, "Preview size updated: ${width}x$height")
-    }
-
-    /**
      * Update lighting condition from camera analysis
      */
     private fun updateLightingCondition(condition: LowLightDetector.LightingCondition) {
@@ -413,7 +381,6 @@ class CameraViewModel @Inject constructor(
      */
     override fun onCleared() {
         super.onCleared()
-        cameraManager.clearEdgeDetectionCallback()
         cameraManager.clearLightingConditionCallback()
         cameraManager.release()
 

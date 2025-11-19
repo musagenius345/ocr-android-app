@@ -8,7 +8,16 @@
       "Bash(./gradlew clean:*)",
       "Bash(./gradlew kspDebugKotlin:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(./gradlew testDebugUnitTest:*)",
+      "Bash(cat:*)",
+      "Bash(git push)",
+      "Bash(gh project view:*)",
+      "Bash(gh project list:*)",
+      "Bash(gh auth refresh:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh project item-add:*)"
     ],
     "deny": [],
     "ask": []

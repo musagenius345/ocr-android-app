@@ -4,13 +4,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 /**
- * Unit tests for ImageQuality
+ * Unit tests for ImageQualityAssessment
  */
 class ImageQualityTest {
 
     @Test
     fun `needsPreprocessing returns true for low brightness`() {
-        val quality = ImageQuality(
+        val quality = ImageQualityAssessment(
             isAcceptable = true,
             blurScore = 0.8f,
             brightnessScore = 0.3f,
@@ -22,7 +22,7 @@ class ImageQualityTest {
 
     @Test
     fun `needsPreprocessing returns true for low blur score`() {
-        val quality = ImageQuality(
+        val quality = ImageQualityAssessment(
             isAcceptable = true,
             blurScore = 0.5f,
             brightnessScore = 0.7f,
@@ -34,7 +34,7 @@ class ImageQualityTest {
 
     @Test
     fun `needsPreprocessing returns false for good quality`() {
-        val quality = ImageQuality(
+        val quality = ImageQualityAssessment(
             isAcceptable = true,
             blurScore = 0.8f,
             brightnessScore = 0.7f,
@@ -46,28 +46,28 @@ class ImageQualityTest {
 
     @Test
     fun `getQualityDescription returns appropriate messages`() {
-        val poorQuality = ImageQuality(
+        val poorQuality = ImageQualityAssessment(
             isAcceptable = false,
             blurScore = 0.2f,
             brightnessScore = 0.2f,
             resolution = 100000
         )
 
-        val blurryQuality = ImageQuality(
+        val blurryQuality = ImageQualityAssessment(
             isAcceptable = true,
             blurScore = 0.5f,
             brightnessScore = 0.7f,
             resolution = 1000000
         )
 
-        val darkQuality = ImageQuality(
+        val darkQuality = ImageQualityAssessment(
             isAcceptable = true,
             blurScore = 0.8f,
             brightnessScore = 0.3f,
             resolution = 1000000
         )
 
-        val goodQuality = ImageQuality(
+        val goodQuality = ImageQualityAssessment(
             isAcceptable = true,
             blurScore = 0.8f,
             brightnessScore = 0.7f,
@@ -83,7 +83,7 @@ class ImageQualityTest {
     @Test
     fun `warnings list contains appropriate warnings`() {
         val warnings = listOf("Image is very blurry", "Image is too dark")
-        val quality = ImageQuality(
+        val quality = ImageQualityAssessment(
             isAcceptable = false,
             blurScore = 0.2f,
             brightnessScore = 0.2f,
