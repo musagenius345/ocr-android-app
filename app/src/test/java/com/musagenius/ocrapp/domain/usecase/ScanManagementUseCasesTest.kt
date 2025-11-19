@@ -20,23 +20,48 @@ import org.mockito.kotlin.whenever
 import java.util.Date
 
 /**
- * Unit tests for scan management use cases:
- * - GetAllScansUseCase
- * - DeleteScanUseCase
- * - InitializeOCRUseCase
+ * Unit tests for scan management use cases.
+ *
+ * This test suite validates the following use cases:
+ * - [GetAllScansUseCase]: Retrieves all scan results with Flow emissions
+ * - [DeleteScanUseCase]: Deletes scans by ID with error handling
+ * - [InitializeOCRUseCase]: Initializes OCR engine with configuration
+ *
+ * Tests cover:
+ * - Successful operations with correct data flow
+ * - Error propagation from repository/service layers
+ * - Loading states and Flow emissions
+ * - Language availability checks
+ * - Multiple emissions and concurrent operations
+ * - Edge cases (non-existent IDs, empty results, etc.)
+ *
+ * Uses Mockito for mocking repository and service dependencies,
+ * and coroutine test utilities for async operation testing.
+ *
+ * @see GetAllScansUseCase
+ * @see DeleteScanUseCase
+ * @see InitializeOCRUseCase
  */
 class ScanManagementUseCasesTest {
 
+    /** Mock repository for scan data operations */
     @Mock
     private lateinit var scanRepository: ScanRepository
 
+    /** Mock OCR service for initialization testing */
     @Mock
     private lateinit var ocrService: OCRService
 
+    /** Use case under test for retrieving all scans */
     private lateinit var getAllScansUseCase: GetAllScansUseCase
+
+    /** Use case under test for deleting scans */
     private lateinit var deleteScanUseCase: DeleteScanUseCase
+
+    /** Use case under test for OCR initialization */
     private lateinit var initializeOCRUseCase: InitializeOCRUseCase
 
+    /** Test scan result fixture for use in tests */
     private val testScanResult = ScanResult(
         id = 1L,
         timestamp = Date(),

@@ -27,24 +27,51 @@ import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.whenever
 
 /**
- * Comprehensive unit tests for SettingsViewModel
+ * Comprehensive unit tests for [SettingsViewModel].
+ *
+ * This test suite validates user preferences management functionality including:
+ * - Preferences loading from GetUserPreferencesUseCase via Flow
+ * - Theme management (Light, Dark, System) with proper persistence
+ * - Dynamic color (Material You) toggle
+ * - Default camera selection (Front, Back)
+ * - Image quality settings (Low, Medium, High)
+ * - Auto-focus toggle
+ * - Auto-save to history toggle
+ * - Auto-delete old scans toggle with configurable retention days
+ * - Auto-delete days configuration (7, 30, 60, 90 days)
+ * - Multiple simultaneous preference updates
+ * - Error handling for preference load and save failures
+ *
+ * Tests verify state transitions using Turbine for Flow testing,
+ * proper repository method calls with Mockito verification, and
+ * reactive updates when preferences change.
+ *
+ * @see SettingsViewModel
+ * @see GetUserPreferencesUseCase
+ * @see PreferencesRepository
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsViewModelTest {
 
+    /** Rule to execute LiveData updates synchronously for testing */
     @get:Rule
     val instantExecutorRule = InstantTaskExecutorRule()
 
+    /** Test dispatcher for controlling coroutine execution */
     private val testDispatcher = StandardTestDispatcher()
 
+    /** Mock use case for retrieving user preferences */
     @Mock
     private lateinit var getUserPreferencesUseCase: GetUserPreferencesUseCase
 
+    /** Mock repository for persisting preference changes */
     @Mock
     private lateinit var preferencesRepository: PreferencesRepository
 
+    /** System under test */
     private lateinit var viewModel: SettingsViewModel
 
+    /** Default test preferences with system theme and standard settings */
     private val defaultPreferences = UserPreferences(
         theme = AppTheme.SYSTEM,
         useDynamicColor = false,
@@ -56,6 +83,11 @@ class SettingsViewModelTest {
         autoDeleteDays = 30
     )
 
+    /**
+     * Sets up the test environment before each test.
+     * Initializes mocks, sets up test dispatcher, and configures default
+     * mock behavior to return default preferences.
+     */
     @Before
     fun setup() {
         MockitoAnnotations.openMocks(this)
@@ -66,6 +98,9 @@ class SettingsViewModelTest {
             .thenReturn(flowOf(defaultPreferences))
     }
 
+    /**
+     * Cleans up after each test by resetting the main dispatcher.
+     */
     @After
     fun tearDown() {
         Dispatchers.resetMain()

@@ -28,34 +28,68 @@ import org.mockito.kotlin.whenever
 import java.util.Date
 
 /**
- * Comprehensive unit tests for ScanDetailViewModel
+ * Comprehensive unit tests for [ScanDetailViewModel].
+ *
+ * This test suite validates scan detail viewing and editing functionality including:
+ * - Scan loading by ID from SavedStateHandle navigation argument
+ * - Extracted text viewing and editing with save/cancel operations
+ * - Title editing with save/cancel operations
+ * - Notes editing with save/cancel operations
+ * - Favorite status toggling with persistence
+ * - Scan deletion with confirmation
+ * - Navigation argument validation (missing or invalid scan ID)
+ * - Edit mode state management (editing vs. viewing)
+ * - Draft content management (unsaved changes tracking)
+ * - Error handling for load, update, and delete failures
+ * - Multiple field updates in sequence
+ *
+ * Tests verify state transitions using Turbine for Flow testing,
+ * SavedStateHandle integration for navigation arguments, proper
+ * use case orchestration, and edit/cancel workflow validation.
+ *
+ * @see ScanDetailViewModel
+ * @see GetScanByIdUseCase
+ * @see UpdateExtractedTextUseCase
+ * @see UpdateTitleAndNotesUseCase
+ * @see UpdateFavoriteStatusUseCase
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ScanDetailViewModelTest {
 
+    /** Rule to execute LiveData updates synchronously for testing */
     @get:Rule
     val instantExecutorRule = InstantTaskExecutorRule()
 
+    /** Test dispatcher for controlling coroutine execution */
     private val testDispatcher = StandardTestDispatcher()
 
+    /** Mock use case for retrieving scan by ID */
     @Mock
     private lateinit var getScanByIdUseCase: GetScanByIdUseCase
 
+    /** Mock use case for updating extracted text field */
     @Mock
     private lateinit var updateExtractedTextUseCase: UpdateExtractedTextUseCase
 
+    /** Mock use case for updating title and notes fields */
     @Mock
     private lateinit var updateTitleAndNotesUseCase: UpdateTitleAndNotesUseCase
 
+    /** Mock use case for toggling favorite status */
     @Mock
     private lateinit var updateFavoriteStatusUseCase: UpdateFavoriteStatusUseCase
 
+    /** Mock use case for deleting scan */
     @Mock
     private lateinit var deleteScanUseCase: DeleteScanUseCase
 
+    /** SavedStateHandle for providing navigation arguments */
     private lateinit var savedStateHandle: SavedStateHandle
+
+    /** System under test */
     private lateinit var viewModel: ScanDetailViewModel
 
+    /** Test scan result with all fields populated for comprehensive testing */
     private val testScanResult = ScanResult(
         id = 1L,
         timestamp = Date(),
@@ -70,17 +104,30 @@ class ScanDetailViewModelTest {
         modifiedTimestamp = Date()
     )
 
+    /**
+     * Sets up the test environment before each test.
+     * Initializes mocks and sets up test dispatcher.
+     */
     @Before
     fun setup() {
         MockitoAnnotations.openMocks(this)
         Dispatchers.setMain(testDispatcher)
     }
 
+    /**
+     * Cleans up after each test by resetting the main dispatcher.
+     */
     @After
     fun tearDown() {
         Dispatchers.resetMain()
     }
 
+    /**
+     * Creates a ViewModel instance with the specified scan ID in SavedStateHandle.
+     * This simulates navigation with arguments.
+     *
+     * @param scanId The scan ID to pass as navigation argument (can be null for testing error cases)
+     */
     private fun createViewModel(scanId: String?) {
         savedStateHandle = SavedStateHandle(mapOf("scanId" to scanId))
         viewModel = ScanDetailViewModel(

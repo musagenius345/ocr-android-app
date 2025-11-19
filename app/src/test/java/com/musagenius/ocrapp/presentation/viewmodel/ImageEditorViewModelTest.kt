@@ -9,6 +9,7 @@ import com.musagenius.ocrapp.presentation.ui.editor.ImageEditorEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -18,6 +19,8 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TestWatcher
+import org.junit.runner.Description
 import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.MockitoAnnotations
@@ -25,39 +28,93 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
 
 /**
- * Comprehensive unit tests for ImageEditorViewModel
+ * JUnit rule that sets up and tears down a TestDispatcher as the Main dispatcher.
+ * This ensures that runTest and advanceUntilIdle properly advance coroutines on the Main dispatcher.
+ */
+class MainDispatcherRule(
+    private val testDispatcher: TestDispatcher = StandardTestDispatcher()
+) : TestWatcher() {
+    override fun starting(description: Description) {
+        Dispatchers.setMain(testDispatcher)
+    }
+
+    override fun finished(description: Description) {
+        Dispatchers.resetMain()
+    }
+}
+
+/**
+ * Comprehensive unit tests for [ImageEditorViewModel].
+ *
+ * This test suite validates image editing functionality including:
+ * - Image initialization with source URI and callbacks
+ * - Rotation operations (clockwise, counterclockwise, reset)
+ * - Rotation accumulation and 360-degree wrapping
+ * - Mixed rotation sequences
+ * - Image saving with proper callback invocation
+ * - Processing state management during async operations
+ * - Error handling for save failures and exceptions
+ * - Cancellation with callback notification
+ * - Edge cases (no source URI, multiple saves, rotation after errors)
+ *
+ * Tests verify state transitions using Turbine for Flow testing,
+ * Mockito for ImageEditor mocking, and proper callback invocation
+ * for save and cancel operations.
+ *
+ * @see ImageEditorViewModel
+ * @see ImageEditor
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ImageEditorViewModelTest {
 
+    /** Rule to execute LiveData updates synchronously for testing */
     @get:Rule
     val instantExecutorRule = InstantTaskExecutorRule()
 
-    private val testDispatcher = StandardTestDispatcher()
+    /** Rule to set up and tear down Main dispatcher for coroutine testing */
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
+    /** Mock image editor for testing edit operations */
     @Mock
     private lateinit var imageEditor: ImageEditor
 
+    /** System under test */
     private lateinit var viewModel: ImageEditorViewModel
 
+    /** Test URI representing the source image to edit */
     private val testSourceUri = Uri.parse("content://test/source.jpg")
+
+    /** Test URI representing the edited/saved image result */
     private val testEditedUri = Uri.parse("content://test/edited.jpg")
 
+    /** Callback capture for save operation results */
     private var savedCallback: Uri? = null
+
+    /** Flag to track if cancellation callback was invoked */
     private var cancelledCalled = false
 
+    /** AutoCloseable handle for Mockito mocks to prevent resource leaks */
+    private lateinit var mocksCloseable: AutoCloseable
+
+    /**
+     * Sets up the test environment before each test.
+     * Initializes mocks, creates ViewModel instance, and resets callback tracking variables.
+     */
     @Before
     fun setup() {
-        MockitoAnnotations.openMocks(this)
-        Dispatchers.setMain(testDispatcher)
+        mocksCloseable = MockitoAnnotations.openMocks(this)
         viewModel = ImageEditorViewModel(imageEditor)
         savedCallback = null
         cancelledCalled = false
     }
 
+    /**
+     * Cleans up after each test by closing Mockito mocks to prevent resource leaks.
+     */
     @After
     fun tearDown() {
-        Dispatchers.resetMain()
+        mocksCloseable.close()
     }
 
     // ============ Initialization Tests ============

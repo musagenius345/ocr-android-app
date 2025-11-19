@@ -17,15 +17,32 @@ import org.mockito.kotlin.whenever
 import java.util.Date
 
 /**
- * Unit tests for SearchScansUseCase
+ * Comprehensive unit tests for [SearchScansUseCase].
+ *
+ * This test suite validates scan search functionality including:
+ * - Search query execution delegated to ScanRepository
+ * - Result Flow emission from repository layer
+ * - Empty result handling when no matches found
+ * - Error propagation from repository failures
+ * - Edge case handling (empty queries, special characters)
+ * - Query passthrough without modification
+ *
+ * Tests verify proper Flow emission patterns, error handling,
+ * and repository interaction for full-text search operations.
+ *
+ * @see SearchScansUseCase
+ * @see ScanRepository
  */
 class SearchScansUseCaseTest {
 
+    /** Mock scan repository for search operations */
     @Mock
     private lateinit var scanRepository: ScanRepository
 
+    /** System under test */
     private lateinit var useCase: SearchScansUseCase
 
+    /** Test scan result with searchable text content */
     private val testScanResult = ScanResult(
         id = 1L,
         timestamp = Date(),
@@ -40,6 +57,10 @@ class SearchScansUseCaseTest {
         modifiedTimestamp = Date()
     )
 
+    /**
+     * Sets up the test environment before each test.
+     * Initializes mocks and creates the use case instance.
+     */
     @Before
     fun setup() {
         MockitoAnnotations.openMocks(this)

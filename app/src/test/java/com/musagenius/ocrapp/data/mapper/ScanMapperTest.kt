@@ -8,11 +8,31 @@ import org.junit.Test
 import java.util.Date
 
 /**
- * Unit tests for ScanMapper
+ * Comprehensive unit tests for ScanMapper extension functions.
+ *
+ * This test suite validates bidirectional mapping between data and domain layers:
+ * - ScanEntity to ScanResult conversion (toDomain)
+ * - ScanResult to ScanEntity conversion (toEntity)
+ * - Tag list to comma-separated string conversion
+ * - Comma-separated string to tag list conversion
+ * - Empty tag handling (empty string ↔ empty list)
+ * - List mapping (List<ScanEntity> to List<ScanResult>)
+ * - Field preservation across conversions
+ * - Bidirectional conversion data integrity validation
+ *
+ * Tests ensure proper mapping of all fields including timestamps, URIs,
+ * confidence scores, favorites, and metadata between Room entities and
+ * domain models.
+ *
+ * @see ScanEntity
+ * @see ScanResult
  */
 class ScanMapperTest {
 
+    /** Test timestamp shared across test data */
     private val testTimestamp = Date()
+
+    /** Test image URI */
     private val testUri = Uri.parse("content://test/image.jpg")
 
     @Test

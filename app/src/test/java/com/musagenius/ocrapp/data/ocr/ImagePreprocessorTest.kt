@@ -9,13 +9,34 @@ import org.junit.Test
 import org.mockito.MockitoAnnotations
 
 /**
- * Comprehensive unit tests for ImagePreprocessor
- * Note: These tests use mock bitmaps and focus on logic validation
+ * Comprehensive unit tests for [ImagePreprocessor].
+ *
+ * This test suite validates image preprocessing functionality for OCR including:
+ * - Image scaling with aspect ratio preservation
+ * - Grayscale conversion validation
+ * - Contrast enhancement through histogram stretching
+ * - Image quality assessment (sharpness, brightness, resolution)
+ * - Blur detection using Laplacian variance
+ * - Brightness calculation and thresholds
+ * - Image rotation at various angles (0°, 90°, 180°, 270°, arbitrary)
+ * - Edge cases (tiny bitmaps, uniform colors, extreme values)
+ * - Multiple preprocessing operations in sequence
+ *
+ * Note: Tests use synthetically created bitmaps (solid colors, gradients)
+ * to validate preprocessing logic without requiring actual image files.
+ * The focus is on algorithmic correctness rather than visual quality.
+ *
+ * @see ImagePreprocessor
  */
 class ImagePreprocessorTest {
 
+    /** System under test */
     private lateinit var preprocessor: ImagePreprocessor
 
+    /**
+     * Sets up the test environment before each test.
+     * Initializes the ImagePreprocessor instance.
+     */
     @Before
     fun setup() {
         MockitoAnnotations.openMocks(this)
@@ -25,7 +46,12 @@ class ImagePreprocessorTest {
     // ============ Helper Methods ============
 
     /**
-     * Create a simple test bitmap with specified dimensions
+     * Creates a simple test bitmap with uniform color.
+     *
+     * @param width Bitmap width in pixels
+     * @param height Bitmap height in pixels
+     * @param color Fill color (default: white)
+     * @return Bitmap filled with the specified color
      */
     private fun createTestBitmap(width: Int, height: Int, color: Int = Color.WHITE): Bitmap {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)

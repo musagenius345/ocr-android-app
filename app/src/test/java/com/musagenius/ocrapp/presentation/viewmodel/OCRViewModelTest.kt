@@ -32,34 +32,60 @@ import org.mockito.kotlin.whenever
 import java.util.Date
 
 /**
- * Comprehensive unit tests for OCRViewModel
+ * Comprehensive unit tests for [OCRViewModel].
+ *
+ * This test suite validates the OCR processing workflow including:
+ * - Initial state verification
+ * - Image processing (success, errors, cancellation)
+ * - Retry functionality after failures
+ * - Save to history with validation
+ * - Error handling and dismissal
+ * - Resource cleanup and memory management
+ *
+ * Uses Turbine for Flow testing, Mockito for mocking dependencies,
+ * and StandardTestDispatcher for controlled coroutine execution.
+ *
+ * @see OCRViewModel
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class OCRViewModelTest {
 
+    /** Rule to execute LiveData updates synchronously for testing */
     @get:Rule
     val instantExecutorRule = InstantTaskExecutorRule()
 
+    /** Test dispatcher for controlling coroutine execution */
     private val testDispatcher = StandardTestDispatcher()
 
+    /** Mock use case for processing images with OCR */
     @Mock
     private lateinit var processImageUseCase: ProcessImageUseCase
 
+    /** Mock repository for saving scan results */
     @Mock
     private lateinit var scanRepository: ScanRepository
 
+    /** Mock OCR service for controlling OCR operations */
     @Mock
     private lateinit var ocrService: OCRService
 
+    /** System under test */
     private lateinit var viewModel: OCRViewModel
 
+    /** Test image URI for OCR processing */
     private val testImageUri = Uri.parse("content://test/image.jpg")
+
+    /** Expected OCR result for successful processing */
     private val testOCRResult = OCRResult(
         text = "Test extracted text",
         confidence = 0.95f,
         processingTimeMs = 1500L
     )
 
+    /**
+     * Sets up the test environment before each test.
+     * Initializes mocks, sets up test dispatcher, and creates ViewModel instance.
+     */
     @Before
     fun setup() {
         MockitoAnnotations.openMocks(this)
@@ -67,6 +93,9 @@ class OCRViewModelTest {
         viewModel = OCRViewModel(processImageUseCase, scanRepository, ocrService)
     }
 
+    /**
+     * Cleans up after each test by resetting the main dispatcher.
+     */
     @After
     fun tearDown() {
         Dispatchers.resetMain()
@@ -74,6 +103,10 @@ class OCRViewModelTest {
 
     // ============ Initial State Tests ============
 
+    /**
+     * Verifies that the ViewModel starts with an empty/default state.
+     * Ensures no image is set, no processing is occurring, and no errors are present.
+     */
     @Test
     fun `initial state should be empty`() = runTest {
         viewModel.uiState.test {
@@ -91,6 +124,10 @@ class OCRViewModelTest {
 
     // ============ Process Image Tests ============
 
+    /**
+     * Verifies that processing state is updated when image processing begins.
+     * Checks that the UI state reflects either the processing flag or result.
+     */
     @Test
     fun `processImage should update state to processing`() = runTest {
         // Given
@@ -108,6 +145,10 @@ class OCRViewModelTest {
         }
     }
 
+    /**
+     * Tests successful OCR text extraction from an image.
+     * Verifies that the extracted text, confidence score, and language are correctly set in the state.
+     */
     @Test
     fun `processImage should extract text successfully`() = runTest {
         // Given
@@ -130,6 +171,10 @@ class OCRViewModelTest {
         }
     }
 
+    /**
+     * Verifies that OCR processing errors are handled gracefully.
+     * Ensures error messages are displayed and processing flag is cleared.
+     */
     @Test
     fun `processImage should handle errors gracefully`() = runTest {
         // Given

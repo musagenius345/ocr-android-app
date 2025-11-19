@@ -33,28 +33,53 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
 
 /**
- * Comprehensive unit tests for CameraViewModel
+ * Comprehensive unit tests for [CameraViewModel].
+ *
+ * This test suite validates the camera functionality including:
+ * - Image capture with storage validation and compression
+ * - Flash mode cycling (OFF → ON → AUTO → OFF)
+ * - Zoom and exposure controls with boundary clamping
+ * - Camera flipping (front/back) with capability updates
+ * - Tap-to-focus functionality
+ * - Grid overlay toggling
+ * - Lighting condition detection and warnings
+ * - Resolution management and dialog handling
+ * - Error handling for all camera operations
+ *
+ * Tests verify state transitions using Turbine for Flow testing,
+ * Mockito for dependency mocking, and proper verification of
+ * CameraManager interactions.
+ *
+ * @see CameraViewModel
+ * @see CameraManager
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CameraViewModelTest {
 
+    /** Rule to execute LiveData updates synchronously for testing */
     @get:Rule
     val instantExecutorRule = InstantTaskExecutorRule()
 
+    /** Test dispatcher for controlling coroutine execution */
     private val testDispatcher = StandardTestDispatcher()
 
+    /** Mock camera manager for controlling camera operations */
     @Mock
     private lateinit var cameraManager: CameraManager
 
+    /** Mock image compressor for testing compression logic */
     @Mock
     private lateinit var imageCompressor: ImageCompressor
 
+    /** Mock storage manager for testing storage availability checks */
     @Mock
     private lateinit var storageManager: StorageManager
 
+    /** Mock lifecycle owner for camera initialization */
     @Mock
     private lateinit var lifecycleOwner: LifecycleOwner
 
+    /** Mock preview view for camera preview surface */
     @Mock
     private lateinit var previewView: PreviewView
 

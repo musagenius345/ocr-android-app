@@ -19,33 +19,59 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
 
 /**
- * Unit tests for ProcessImageUseCase
+ * Comprehensive unit tests for [ProcessImageUseCase].
+ *
+ * This test suite validates OCR image processing functionality including:
+ * - Bitmap processing with Flow emission (Loading → Success/Error)
+ * - URI processing with image loading and compression
+ * - Direct execution methods (execute) for non-Flow processing
+ * - Success and error handling from OCRService
+ * - Resource cleanup verification (bitmap recycling)
+ * - Compression handling for URI inputs
+ * - OCR configuration propagation to service layer
+ *
+ * Tests verify proper Flow emissions, error propagation,
+ * resource management, and service interaction patterns.
+ *
+ * @see ProcessImageUseCase
+ * @see OCRService
+ * @see ImageCompressor
  */
 class ProcessImageUseCaseTest {
 
+    /** Mock OCR service for text recognition */
     @Mock
     private lateinit var ocrService: OCRService
 
+    /** Mock image compressor for URI-based image processing */
     @Mock
     private lateinit var imageCompressor: ImageCompressor
 
+    /** Mock bitmap for testing bitmap processing path */
     @Mock
     private lateinit var mockBitmap: Bitmap
 
+    /** System under test */
     private lateinit var useCase: ProcessImageUseCase
 
+    /** Test OCR result with standard confidence and processing time */
     private val testOCRResult = OCRResult(
         text = "Test extracted text",
         confidence = 0.95f,
         processingTimeMs = 1500L
     )
 
+    /** Test OCR configuration with English language and preprocessing enabled */
     private val testConfig = OCRConfig(
         language = "eng",
         preprocessImage = true,
         maxImageDimension = 2048
     )
 
+    /**
+     * Sets up the test environment before each test.
+     * Initializes mocks and creates the use case instance.
+     */
     @Before
     fun setup() {
         MockitoAnnotations.openMocks(this)

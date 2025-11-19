@@ -28,30 +28,59 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
 
 /**
- * Comprehensive unit tests for LanguageViewModel
+ * Comprehensive unit tests for [LanguageViewModel].
+ *
+ * This test suite validates Tesseract OCR language management functionality including:
+ * - Language list loading from GetAvailableLanguagesUseCase
+ * - Language download with progress tracking via Flow emissions
+ * - Download cancellation with proper cleanup
+ * - Download error handling (network failures, insufficient storage)
+ * - Language deletion with confirmation dialogs
+ * - Delete error handling
+ * - Storage space checking before downloads
+ * - Dialog state management (download progress, delete confirmation)
+ * - Multiple concurrent download prevention
+ * - Installed vs. available language filtering
+ *
+ * Tests verify state transitions using Turbine for Flow testing,
+ * progress tracking for long-running downloads, and proper use case
+ * orchestration with Mockito verification.
+ *
+ * @see LanguageViewModel
+ * @see GetAvailableLanguagesUseCase
+ * @see DownloadLanguageUseCase
+ * @see DeleteLanguageUseCase
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class LanguageViewModelTest {
 
+    /** Rule to execute LiveData updates synchronously for testing */
     @get:Rule
     val instantExecutorRule = InstantTaskExecutorRule()
 
+    /** Test dispatcher for controlling coroutine execution */
     private val testDispatcher = StandardTestDispatcher()
 
+    /** Mock use case for retrieving available OCR languages */
     @Mock
     private lateinit var getAvailableLanguagesUseCase: GetAvailableLanguagesUseCase
 
+    /** Mock use case for downloading Tesseract language data files */
     @Mock
     private lateinit var downloadLanguageUseCase: DownloadLanguageUseCase
 
+    /** Mock use case for deleting installed language data files */
     @Mock
     private lateinit var deleteLanguageUseCase: DeleteLanguageUseCase
 
+    /** Mock use case for checking available storage space */
     @Mock
     private lateinit var getLanguageStorageUseCase: GetLanguageStorageUseCase
 
+    /** System under test */
     private lateinit var viewModel: LanguageViewModel
 
+    /** Test language representing an already installed language (English) */
     private val testLanguageInstalled = Language(
         code = "eng",
         displayName = "English",
@@ -59,6 +88,7 @@ class LanguageViewModelTest {
         fileSize = 5_000_000L
     )
 
+    /** Test language representing an available but not installed language (Spanish) */
     private val testLanguageNotInstalled = Language(
         code = "spa",
         displayName = "Spanish",
@@ -66,6 +96,11 @@ class LanguageViewModelTest {
         fileSize = 6_000_000L
     )
 
+    /**
+     * Sets up the test environment before each test.
+     * Initializes mocks, sets up test dispatcher, and configures default
+     * mock behavior for storage availability (10MB available).
+     */
     @Before
     fun setup() {
         MockitoAnnotations.openMocks(this)
@@ -75,6 +110,9 @@ class LanguageViewModelTest {
         whenever(getLanguageStorageUseCase.invoke()).thenReturn(10_000_000L)
     }
 
+    /**
+     * Cleans up after each test by resetting the main dispatcher.
+     */
     @After
     fun tearDown() {
         Dispatchers.resetMain()
