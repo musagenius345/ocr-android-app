@@ -43,7 +43,8 @@ class CameraManager @Inject constructor(
     private var preview: Preview? = null
     private var imageCapture: ImageCapture? = null
     private var imageAnalysis: ImageAnalysis? = null
-    private val executor: Executor = ContextCompat.getMainExecutor(context)
+    private val mainExecutor: Executor = ContextCompat.getMainExecutor(context)
+    private val analysisExecutor: Executor = java.util.concurrent.Executors.newSingleThreadExecutor()
     private var currentCameraFacing: CameraFacing = CameraFacing.BACK
     private var lifecycleOwner: LifecycleOwner? = null
     private var previewView: PreviewView? = null
@@ -107,12 +108,14 @@ class CameraManager @Inject constructor(
                 .build()
 
             // Set up ImageAnalysis for low light detection
+            // Use lower resolution to reduce device load and avoid timeout on Pixel devices
+            val analysisResolution = Size(640, 480)
             imageAnalysis = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .setTargetResolution(targetResolution)
+                .setTargetResolution(analysisResolution)
                 .build()
                 .also { analysis ->
-                    analysis.setAnalyzer(executor) { imageProxy ->
+                    analysis.setAnalyzer(analysisExecutor) { imageProxy ->
                         // Process image for low light on background thread
                         processImageForAnalysis(imageProxy)
                     }
@@ -125,12 +128,14 @@ class CameraManager @Inject constructor(
             }
 
             // Bind use cases to camera
+            // KNOWN ISSUE: Pixel 6 Pro Camera2 HAL times out with 3 concurrent streams
+            // ImageAnalysis disabled to prevent timeout - low-light detection unavailable
             camera = cameraProvider?.bindToLifecycle(
                 lifecycleOwner,
                 cameraSelector,
                 preview,
-                imageCapture,
-                imageAnalysis
+                imageCapture
+                // imageAnalysis temporarily disabled for Pixel device compatibility
             )
 
             Log.d(TAG, "Camera started successfully with ${cameraFacing.getDisplayName()}")
@@ -160,7 +165,7 @@ class CameraManager @Inject constructor(
 
         imageCapture.takePicture(
             outputOptions,
-            executor,
+            mainExecutor,
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     val savedUri = Uri.fromFile(photoFile)
@@ -346,6 +351,10 @@ class CameraManager @Inject constructor(
         imageCapture = null
         imageAnalysis = null
         lightingConditionCallback = null
+
+        // Shutdown analysis executor
+        (analysisExecutor as? java.util.concurrent.ExecutorService)?.shutdown()
+
         Log.d(TAG, "Camera released")
     }
 
@@ -360,7 +369,7 @@ class CameraManager @Inject constructor(
             } catch (e: Exception) {
                 continuation.resumeWithException(e)
             }
-        }, executor)
+        }, mainExecutor)
     }
 }
 

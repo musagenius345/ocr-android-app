@@ -48,6 +48,7 @@ class CameraViewModel @Inject constructor(
     // Store references for camera restart operations
     private var lifecycleOwner: LifecycleOwner? = null
     private var previewView: PreviewView? = null
+    private var isCameraStarted = false
 
     companion object {
         private const val TAG = "CameraViewModel"
@@ -85,6 +86,12 @@ class CameraViewModel @Inject constructor(
         lifecycleOwner: LifecycleOwner,
         previewView: PreviewView
     ) {
+        // Prevent multiple camera starts
+        if (isCameraStarted) {
+            Log.d(TAG, "Camera already started, skipping")
+            return
+        }
+
         viewModelScope.launch {
             try {
                 // Store references for camera restart operations (e.g., resolution change)
@@ -109,14 +116,16 @@ class CameraViewModel @Inject constructor(
                 // Update camera capabilities after starting
                 updateCameraCapabilities()
 
+                isCameraStarted = true
                 _uiState.update { it.copy(isLoading = false) }
                 Log.d(TAG, "Camera started successfully")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to start camera", e)
+                isCameraStarted = false // Reset flag on error to allow retry
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = "Failed to start camera: ${e.localizedMessage}"
+                        error = "Failed to start camera: ${e.localizedMessage}. Pull down to retry."
                     )
                 }
             }
@@ -548,6 +557,7 @@ class CameraViewModel @Inject constructor(
         // Clear references to avoid memory leaks
         lifecycleOwner = null
         previewView = null
+        isCameraStarted = false
 
         Log.d(TAG, "ViewModel cleared, camera released")
     }

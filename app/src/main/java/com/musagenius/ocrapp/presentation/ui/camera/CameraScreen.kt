@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.camera.view.PreviewView
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.musagenius.ocrapp.R
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -60,6 +61,9 @@ fun CameraScreen(
     // Shutter animation trigger
     var showShutterAnimation by remember { mutableStateOf(false) }
 
+    // PreviewView reference for proper lifecycle management
+    var previewView: PreviewView? by remember { mutableStateOf(null) }
+
     // Camera permission state
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
@@ -87,6 +91,21 @@ fun CameraScreen(
     LaunchedEffect(scannerIntentRequest) {
         scannerIntentRequest?.let { request ->
             scannerLauncher.launch(request)
+        }
+    }
+
+    // Lifecycle-aware camera initialization
+    // Only start camera when PreviewView is ready and permission is granted
+    DisposableEffect(previewView, cameraPermissionState.status.isGranted) {
+        val preview = previewView
+        if (preview != null && cameraPermissionState.status.isGranted) {
+            // Additional post to ensure surface is fully ready
+            preview.post {
+                viewModel.startCamera(lifecycleOwner, preview)
+            }
+        }
+        onDispose {
+            // Cleanup is handled by ViewModel
         }
     }
 
@@ -187,16 +206,7 @@ fun CameraScreen(
                 }
                 else -> {
                     // Camera preview
-                    var previewView: androidx.camera.view.PreviewView? by remember { mutableStateOf(null) }
                     val density = LocalDensity.current
-
-                    LaunchedEffect(previewView, cameraPermissionState.status.isGranted) {
-                        if (cameraPermissionState.status.isGranted) {
-                            previewView?.let { preview ->
-                                viewModel.startCamera(lifecycleOwner, preview)
-                            }
-                        }
-                    }
 
                     Box(
                         modifier = Modifier
@@ -220,7 +230,10 @@ fun CameraScreen(
                     ) {
                         CameraPreview(
                             modifier = Modifier.fillMaxSize(),
-                            onPreviewViewCreated = { previewView = it }
+                            onPreviewViewCreated = { preview ->
+                                // Store reference for lifecycle-aware initialization
+                                previewView = preview
+                            }
                         )
 
                         // Grid overlay
