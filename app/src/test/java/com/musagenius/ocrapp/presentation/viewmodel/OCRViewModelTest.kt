@@ -140,6 +140,7 @@ class OCRViewModelTest {
 
         // When
         viewModel.onEvent(OCREvent.ProcessImage(testImageUri, "eng"))
+        advanceUntilIdle()
 
         // Then
         viewModel.uiState.test {

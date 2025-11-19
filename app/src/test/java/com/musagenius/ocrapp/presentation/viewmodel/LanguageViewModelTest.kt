@@ -105,12 +105,9 @@ class LanguageViewModelTest {
      * mock behavior for storage availability (10MB available).
      */
     @Before
-    fun setup() = runTest {
+    fun setup() {
         mocksCloseable = MockitoAnnotations.openMocks(this)
         Dispatchers.setMain(testDispatcher)
-
-        // Default mocks
-        whenever(getLanguageStorageUseCase.invoke()).thenReturn(10_000_000L)
     }
 
     /**
