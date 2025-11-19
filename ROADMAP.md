@@ -828,7 +828,26 @@ Prepare the app for production release on Google Play Store.
 - [ ] Batch processing multiple images
 - [ ] PDF export functionality
 - [ ] Advanced image editing tools
-- [ ] Document edge detection
+- [ ] **OpenCV Document Edge Detection** (FOSS, no GMS dependency)
+  - **Preprocessing Pipeline:**
+    - Grayscale conversion for single-channel processing
+    - Gaussian blur (5×5 kernel) to reduce noise
+    - Otsu's thresholding for binarization
+  - **Edge Detection:** Canny edge detection (thresholds: 50, 150)
+  - **Contour Detection:**
+    - `findContours()` to extract closed curves
+    - Sort contours by area (prioritize largest)
+    - Polygon approximation via `approxPolyDP()` (2% perimeter tolerance)
+    - Identify 4-sided polygons as document candidates
+  - **Perspective Transformation:** 4-point transform to straighten document
+  - **UI Features:**
+    - Real-time preview overlay showing detected edges
+    - Manual corner adjustment for edge cases
+    - Visual feedback when document detected
+  - **Known Limitations:** May struggle with bright surfaces, dark shadows, low contrast
+    - Future: Consider ML-based detection for robust handling of diverse conditions
+  - **Dependencies:** `org.opencv:opencv-android` (~15MB)
+  - **Reference:** [Scanbot OpenCV Edge Detection Guide](https://scanbot.io/techblog/document-edge-detection-with-opencv/)
 - [ ] Auto-rotate based on text orientation
 - [ ] Text-to-speech for extracted text
 - [ ] Enhanced search with filters
