@@ -7,7 +7,6 @@ import androidx.camera.core.*
 import androidx.camera.core.SurfaceOrientedMeteringPointFactory
 import androidx.camera.view.CameraController
 import androidx.camera.view.LifecycleCameraController
-import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.musagenius.ocrapp.presentation.ui.camera.CameraFacing
@@ -45,25 +44,33 @@ class CameraManager @Inject constructor(
     }
 
     /**
-     * Initialize camera with LifecycleCameraController
-     * Much simpler than manual use case management - handles lifecycle automatically
+     * Get the LifecycleCameraController instance
+     * Controller is created once and reused across configuration changes
      */
-    suspend fun startCamera(
+    fun getCameraController(): LifecycleCameraController {
+        return cameraController ?: LifecycleCameraController(context).also {
+            cameraController = it
+            Log.d(TAG, "LifecycleCameraController created")
+        }
+    }
+
+    /**
+     * Bind camera controller to lifecycle with configuration
+     * PreviewView should already have controller set via getCameraController()
+     */
+    suspend fun bindToLifecycle(
         lifecycleOwner: LifecycleOwner,
-        previewView: PreviewView,
         flashMode: FlashMode = FlashMode.OFF,
         cameraFacing: CameraFacing = CameraFacing.BACK
     ) = withContext(Dispatchers.Main) {
         try {
-            Log.d(TAG, "Initializing camera with ${cameraFacing.getDisplayName()}")
+            Log.d(TAG, "Binding camera to lifecycle with ${cameraFacing.getDisplayName()}")
 
             // Save current camera facing
             currentCameraFacing = cameraFacing
 
-            // Create or reuse controller
-            val controller = cameraController ?: LifecycleCameraController(context).also {
-                cameraController = it
-            }
+            // Get or create controller
+            val controller = getCameraController()
 
             // Configure controller
             controller.apply {
@@ -73,7 +80,7 @@ class CameraManager @Inject constructor(
                     CameraFacing.FRONT -> CameraSelector.DEFAULT_FRONT_CAMERA
                 }
 
-                // Enable image capture
+                // Enable image capture and analysis
                 setEnabledUseCases(
                     CameraController.IMAGE_CAPTURE or CameraController.IMAGE_ANALYSIS
                 )
@@ -81,19 +88,15 @@ class CameraManager @Inject constructor(
                 // Set flash mode
                 imageCaptureFlashMode = flashMode.toImageCaptureFlashMode()
 
-                // IMPORTANT: Set PreviewView controller FIRST, then bind lifecycle
-                // This ensures the surface is available when binding
-                previewView.controller = this
-
                 // Bind controller to lifecycle
                 unbind() // Unbind any previous lifecycle
                 bindToLifecycle(lifecycleOwner)
             }
 
-            Log.d(TAG, "Camera controller bound successfully")
+            Log.d(TAG, "Camera controller bound to lifecycle successfully")
 
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to start camera", e)
+            Log.e(TAG, "Failed to bind camera to lifecycle", e)
             throw e
         }
     }

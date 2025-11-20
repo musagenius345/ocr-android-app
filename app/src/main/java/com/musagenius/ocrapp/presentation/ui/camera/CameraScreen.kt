@@ -4,8 +4,11 @@ import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import android.util.Log
+import android.view.ViewGroup
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.view.PreviewView
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -21,12 +24,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.camera.view.PreviewView
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.musagenius.ocrapp.R
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -212,19 +215,34 @@ fun CameraScreen(
                                 }
                             }
                     ) {
-                        // Create PreviewView - controller will be bound by CameraManager
-                        val previewView = CameraPreview(
-                            modifier = Modifier.fillMaxSize()
-                        )
+                        // Get camera controller from ViewModel (created once, reused)
+                        val controller = remember { viewModel.getCameraController() }
 
-                        // Simple LaunchedEffect for camera initialization
-                        // LifecycleCameraController handles all the complex lifecycle/surface timing
-                        // Key on lifecycleOwner only (not previewView) to avoid retriggers on recomposition
-                        LaunchedEffect(lifecycleOwner) {
+                        // Bind controller to lifecycle once when permission is granted
+                        // ViewModel prevents duplicate bindings via internal flag
+                        LaunchedEffect(lifecycleOwner, cameraPermissionState.status.isGranted) {
                             if (cameraPermissionState.status.isGranted) {
-                                viewModel.startCamera(lifecycleOwner, previewView)
+                                viewModel.bindCameraToLifecycle(lifecycleOwner)
                             }
                         }
+
+                        // Create PreviewView with controller set in factory
+                        // Factory is only called once, preventing recreations
+                        AndroidView(
+                            factory = { context ->
+                                PreviewView(context).apply {
+                                    layoutParams = ViewGroup.LayoutParams(
+                                        ViewGroup.LayoutParams.MATCH_PARENT,
+                                        ViewGroup.LayoutParams.MATCH_PARENT
+                                    )
+                                    scaleType = PreviewView.ScaleType.FILL_CENTER
+                                    implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                                    this.controller = controller  // Set controller once in factory
+                                    Log.d("CameraScreen", "PreviewView created and controller set")
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
 
                         // Grid overlay
                         if (uiState.showGridOverlay) {

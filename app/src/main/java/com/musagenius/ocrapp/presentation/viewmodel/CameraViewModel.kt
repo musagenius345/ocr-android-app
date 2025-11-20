@@ -3,7 +3,6 @@ package com.musagenius.ocrapp.presentation.viewmodel
 import android.net.Uri
 import android.util.Log
 import androidx.activity.result.IntentSenderRequest
-import androidx.camera.view.PreviewView
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -45,6 +44,9 @@ class CameraViewModel @Inject constructor(
     private val _scannerIntentRequest = MutableStateFlow<IntentSenderRequest?>(null)
     val scannerIntentRequest: StateFlow<IntentSenderRequest?> = _scannerIntentRequest.asStateFlow()
 
+    // Track if camera has been bound to prevent duplicate bindings
+    private var isCameraBound = false
+
     companion object {
         private const val TAG = "CameraViewModel"
     }
@@ -75,20 +77,32 @@ class CameraViewModel @Inject constructor(
     }
 
     /**
-     * Start camera with preview using LifecycleCameraController
-     * Much simpler than before - controller handles lifecycle and race conditions
+     * Get the LifecycleCameraController for binding to PreviewView
+     * Controller is managed by CameraManager and reused across configuration changes
      */
-    fun startCamera(
-        lifecycleOwner: LifecycleOwner,
-        previewView: PreviewView
-    ) {
+    fun getCameraController() = cameraManager.getCameraController()
+
+    /**
+     * Bind camera controller to lifecycle
+     * Should be called once when the camera screen is composed
+     * Uses flag to prevent duplicate bindings from multiple recompositions
+     */
+    fun bindCameraToLifecycle(lifecycleOwner: LifecycleOwner) {
+        // Early return if already bound
+        if (isCameraBound) {
+            Log.d(TAG, "Camera already bound, skipping duplicate bind request")
+            return
+        }
+
+        // Set flag immediately to block concurrent calls
+        isCameraBound = true
+
         viewModelScope.launch {
             try {
                 _uiState.update { it.copy(isLoading = true, error = null) }
 
-                cameraManager.startCamera(
+                cameraManager.bindToLifecycle(
                     lifecycleOwner = lifecycleOwner,
-                    previewView = previewView,
                     flashMode = _uiState.value.flashMode,
                     cameraFacing = _uiState.value.cameraFacing
                 )
@@ -102,9 +116,10 @@ class CameraViewModel @Inject constructor(
                 updateCameraCapabilities()
 
                 _uiState.update { it.copy(isLoading = false) }
-                Log.d(TAG, "Camera started successfully")
+                Log.d(TAG, "Camera bound to lifecycle successfully")
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to start camera", e)
+                Log.e(TAG, "Failed to bind camera", e)
+                isCameraBound = false // Reset on error to allow retry
                 _uiState.update {
                     it.copy(
                         isLoading = false,
