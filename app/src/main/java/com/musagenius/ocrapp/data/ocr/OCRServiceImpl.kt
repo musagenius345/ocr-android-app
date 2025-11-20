@@ -40,9 +40,10 @@ class OCRServiceImpl @Inject constructor(
     private var currentLanguage: String = ""
     @Suppress("SpellCheckingInspection")
     private val tessdataPath: String by lazy {
-        // Use external storage if available, fallback to internal storage
-        val baseDir = context.getExternalFilesDir(null) ?: context.filesDir
-        File(baseDir, "tessdata").absolutePath + File.separator
+        // Use internal storage ONLY for better native library compatibility
+        // Tesseract expects the parent directory that contains the tessdata subfolder
+        // External storage can cause issues with SELinux contexts on Android 10+
+        context.filesDir.absolutePath
     }
 
     companion object {
@@ -58,9 +59,20 @@ class OCRServiceImpl @Inject constructor(
     private suspend fun initializeInternal(config: OCRConfig): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             // Ensure tessdata directory exists
-            val tessdataDir = File(tessdataPath)
+            val tessdataDir = File(tessdataPath, TESSDATA_FOLDER)
             if (!tessdataDir.exists()) {
                 tessdataDir.mkdirs()
+            }
+
+            // CRITICAL: Copy OSD (Orientation and Script Detection) file
+            // Required by Tesseract even for single-language OCR
+            val osdFile = File(tessdataDir, "osd.traineddata")
+            if (!osdFile.exists()) {
+                val osdResult = copyTrainedDataFromAssets("osd")
+                if (osdResult is Result.Error) {
+                    Log.w(TAG, "OSD file not available: ${osdResult.message}")
+                    // Continue anyway - some configurations might work without OSD
+                }
             }
 
             // Check if language file exists, if not, copy from assets
@@ -74,11 +86,15 @@ class OCRServiceImpl @Inject constructor(
 
             // Initialize Tesseract
             if (tessBaseAPI == null || currentLanguage != config.language) {
-                tessBaseAPI?.end()
+                tessBaseAPI?.recycle()
                 tessBaseAPI = TessBaseAPI()
+
+                Log.d(TAG, "Initializing Tesseract with dataPath=$tessdataPath and language=${config.language}")
+                Log.d(TAG, "Tessdata file exists: ${trainedDataFile.exists()}, path: ${trainedDataFile.absolutePath}")
 
                 val success = tessBaseAPI?.init(tessdataPath, config.language) ?: false
                 if (!success) {
+                    Log.e(TAG, "Tesseract init failed! Path: $tessdataPath, Language: ${config.language}")
                     return@withContext Result.error(
                         Exception("Failed to initialize Tesseract"),
                         "Could not initialize OCR engine for language: ${config.language}"
@@ -278,7 +294,8 @@ class OCRServiceImpl @Inject constructor(
         try {
             val fileName = "$language.traineddata"
             val assetPath = "$TESSDATA_FOLDER/$fileName"
-            val outputFile = File(tessdataPath, fileName)
+            val tessdataDir = File(tessdataPath, TESSDATA_FOLDER)
+            val outputFile = File(tessdataDir, fileName)
 
             // Check if file exists in assets
             val assetList = context.assets.list(TESSDATA_FOLDER) ?: emptyArray()
@@ -309,7 +326,8 @@ class OCRServiceImpl @Inject constructor(
      */
     override fun isLanguageAvailable(language: String): Boolean {
         val fileName = "$language.traineddata"
-        val file = File(tessdataPath, fileName)
+        val tessdataDir = File(tessdataPath, TESSDATA_FOLDER)
+        val file = File(tessdataDir, fileName)
         return file.exists()
     }
 
@@ -317,7 +335,7 @@ class OCRServiceImpl @Inject constructor(
      * Get list of available languages
      */
     override fun getAvailableLanguages(): List<String> {
-        val tessdataDir = File(tessdataPath)
+        val tessdataDir = File(tessdataPath, TESSDATA_FOLDER)
         if (!tessdataDir.exists()) return emptyList()
 
         return tessdataDir.listFiles()
@@ -337,7 +355,7 @@ class OCRServiceImpl @Inject constructor(
      * Clean up resources
      */
     override fun cleanup() {
-        tessBaseAPI?.end()
+        tessBaseAPI?.recycle()
         tessBaseAPI = null
         currentLanguage = ""
         Log.d(TAG, "Tesseract cleaned up")

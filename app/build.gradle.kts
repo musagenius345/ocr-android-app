@@ -92,8 +92,8 @@ dependencies {
     // Navigation Compose
     implementation("androidx.navigation:navigation-compose:2.8.5")
 
-    // Tesseract OCR
-    implementation("com.rmtheis:tess-two:9.1.0")
+    // Tesseract OCR (Tesseract 5.x via tesseract4android)
+    implementation("cz.adaptech.tesseract4android:tesseract4android-openmp:4.9.0")
 
     // CameraX
     val cameraxVersion = "1.4.1"

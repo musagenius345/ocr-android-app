@@ -39,7 +39,12 @@
       "Bash(timeout 8 adb:*)",
       "Bash(gh issue comment:*)",
       "Bash(gh issue close:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(timeout 15 adb:*)",
+      "Bash(timeout 5 adb:*)",
+      "Bash(timeout 20 adb:*)",
+      "Bash(timeout 30 adb:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

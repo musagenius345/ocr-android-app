@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.musagenius.ocrapp.domain.model.OCRConfig
+import com.musagenius.ocrapp.domain.model.Result
 import com.musagenius.ocrapp.domain.model.ScanResult
 import com.musagenius.ocrapp.domain.repository.ScanRepository
 import com.musagenius.ocrapp.domain.service.OCRService
@@ -103,9 +104,15 @@ class OCRViewModel @Inject constructor(
 
                 // Process image using the use case
                 processImageUseCase(imageUri, config).collect { result ->
-                    result.fold(
-                        onSuccess = { ocrResult ->
+                    when (result) {
+                        is Result.Loading -> {
+                            // Update progress if needed
+                            _uiState.update { it.copy(isProcessing = true) }
+                            Log.d(TAG, "OCR processing in progress...")
+                        }
+                        is Result.Success -> {
                             val processingTime = System.currentTimeMillis() - startTime
+                            val ocrResult = result.data
 
                             _uiState.update {
                                 it.copy(
@@ -118,17 +125,19 @@ class OCRViewModel @Inject constructor(
                             }
 
                             Log.d(TAG, "OCR completed in ${processingTime}ms with confidence: ${ocrResult.confidence}")
-                        },
-                        onFailure = { error ->
-                            Log.e(TAG, "OCR processing failed", error)
+                        }
+                        is Result.Error -> {
+                            val exception = result.exception
+                            val errorMessage = result.message ?: exception.message
+                            Log.e(TAG, "OCR processing failed", exception)
                             _uiState.update {
                                 it.copy(
                                     isProcessing = false,
-                                    error = "Failed to process image: ${error.message}"
+                                    error = "Failed to process image: $errorMessage"
                                 )
                             }
                         }
-                    )
+                    }
                 }
             } catch (e: CancellationException) {
                 // Job was cancelled - stop OCR processing and clean up
