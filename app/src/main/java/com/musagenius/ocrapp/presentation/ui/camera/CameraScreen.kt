@@ -9,10 +9,14 @@ import android.view.ViewGroup
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.ripple
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.West
@@ -298,7 +302,33 @@ fun CameraScreen(
                             onShowResolutionDialog = {
                                 haptic.performLightTap()
                                 viewModel.onEvent(CameraEvent.ShowResolutionDialog)
+                            },
+                            onToggleZoomControls = {
+                                haptic.performLightTap()
+                                viewModel.onEvent(CameraEvent.ToggleZoomControls)
                             }
+                        )
+
+                        // Zoom control sheet
+                        ZoomControlSheet(
+                            visible = uiState.showZoomControls,
+                            currentZoom = uiState.zoomRatio,
+                            minZoom = uiState.minZoomRatio,
+                            maxZoom = uiState.maxZoomRatio,
+                            zoomPresets = uiState.availableZoomPresets,
+                            selectedPresetIndex = uiState.selectedPresetIndex,
+                            onZoomChange = { zoom ->
+                                viewModel.onEvent(CameraEvent.SetZoom(zoom))
+                            },
+                            onPresetSelected = { index ->
+                                viewModel.onEvent(CameraEvent.SelectZoomPreset(index))
+                            },
+                            onDismiss = {
+                                viewModel.onEvent(CameraEvent.DismissZoomControls)
+                            },
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 120.dp)
                         )
 
                         // Camera controls overlay
@@ -604,7 +634,8 @@ fun CameraTopControls(
     onZoomChange: (Float) -> Unit,
     onToggleGrid: () -> Unit,
     onFlipCamera: () -> Unit,
-    onShowResolutionDialog: () -> Unit
+    onShowResolutionDialog: () -> Unit,
+    onToggleZoomControls: () -> Unit
 ) {
     Column(
         modifier = modifier,
@@ -674,28 +705,42 @@ fun CameraTopControls(
             )
         }
 
-        // Zoom indicator and slider
-        if (zoomRatio > 1.01f) {
-            Surface(
+        // Zoom indicator button - always show, clickable to open zoom controls
+        Surface(
+            modifier = Modifier
+                .width(56.dp)
+                .height(48.dp)
+                .clickable(
+                    onClick = onToggleZoomControls,
+                    indication = ripple(bounded = true),
+                    interactionSource = remember { MutableInteractionSource() }
+                ),
+            color = if (zoomRatio > 1.01f) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
+            } else {
+                MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+            },
+            shape = MaterialTheme.shapes.medium,
+            shadowElevation = if (zoomRatio > 1.01f) 4.dp else 0.dp
+        ) {
+            Row(
                 modifier = Modifier
-                    .width(48.dp)
-                    .height(120.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-                shape = MaterialTheme.shapes.medium
+                    .fillMaxSize()
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(vertical = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = String.format(Locale.US, "%.1fx", zoomRatio),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
+                Text(
+                    text = String.format(Locale.US, "%.1fx", zoomRatio),
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = if (zoomRatio > 1.01f) FontWeight.Bold else FontWeight.Normal
+                    ),
+                    color = if (zoomRatio > 1.01f) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
+                )
             }
         }
     }

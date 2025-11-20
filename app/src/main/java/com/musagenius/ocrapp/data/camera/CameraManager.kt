@@ -159,6 +159,52 @@ class CameraManager @Inject constructor(
     fun getZoomState() = cameraController?.cameraInfo?.zoomState
 
     /**
+     * Get available zoom presets based on device capabilities
+     * Dynamically determines which zoom levels are supported
+     * Hides ultra-wide (0.5x/0.6x) if minZoom >= 1.0
+     */
+    fun getAvailableZoomPresets(): List<Float> {
+        val zoomState = getZoomState()?.value
+        val minZoom = zoomState?.minZoomRatio ?: 1f
+        val maxZoom = zoomState?.maxZoomRatio ?: 1f
+
+        val presets = mutableListOf<Float>()
+
+        // Add ultra-wide preset only if device supports zoom < 1.0
+        if (minZoom < 1.0f) {
+            presets.add(0.6f)
+        }
+
+        // Always add 1x (wide/main)
+        presets.add(1.0f)
+
+        // Add 2x if device supports it
+        if (maxZoom >= 2.0f) {
+            presets.add(2.0f)
+        }
+
+        // Add 5x if device supports high zoom
+        if (maxZoom >= 5.0f) {
+            presets.add(5.0f)
+        }
+
+        Log.d(TAG, "Available zoom presets: $presets (minZoom=$minZoom, maxZoom=$maxZoom)")
+        return presets
+    }
+
+    /**
+     * Get effective zoom range
+     * Returns the actual usable zoom range as a Pair(min, max)
+     */
+    fun getEffectiveZoomRange(): Pair<Float, Float> {
+        val zoomState = getZoomState()?.value
+        return Pair(
+            zoomState?.minZoomRatio ?: 1f,
+            zoomState?.maxZoomRatio ?: 1f
+        )
+    }
+
+    /**
      * Focus on a point using controller
      * @param x X coordinate (0-1, normalized)
      * @param y Y coordinate (0-1, normalized)

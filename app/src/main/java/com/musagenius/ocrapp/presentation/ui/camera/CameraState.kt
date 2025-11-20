@@ -24,7 +24,11 @@ data class CameraUiState(
     val lightingCondition: LowLightDetector.LightingCondition = LowLightDetector.LightingCondition.GOOD,
     val showLowLightWarning: Boolean = true,
     val resolution: CameraResolution = CameraResolution.HD,
-    val showResolutionDialog: Boolean = false
+    val showResolutionDialog: Boolean = false,
+    // Zoom control UI state
+    val availableZoomPresets: List<Float> = listOf(1f, 2f),
+    val showZoomControls: Boolean = false,
+    val selectedPresetIndex: Int = 0
 )
 
 /**
@@ -124,4 +128,8 @@ sealed class CameraEvent {
     data object ShowResolutionDialog : CameraEvent()
     data object DismissResolutionDialog : CameraEvent()
     data class SetResolution(val resolution: CameraResolution) : CameraEvent()
+    // Zoom control events
+    data object ToggleZoomControls : CameraEvent()
+    data class SelectZoomPreset(val presetIndex: Int) : CameraEvent()
+    data object DismissZoomControls : CameraEvent()
 }

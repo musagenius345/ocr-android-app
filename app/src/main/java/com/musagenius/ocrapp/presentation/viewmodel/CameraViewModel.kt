@@ -73,6 +73,9 @@ class CameraViewModel @Inject constructor(
             is CameraEvent.ShowResolutionDialog -> showResolutionDialog()
             is CameraEvent.DismissResolutionDialog -> dismissResolutionDialog()
             is CameraEvent.SetResolution -> setResolution(event.resolution)
+            is CameraEvent.ToggleZoomControls -> toggleZoomControls()
+            is CameraEvent.SelectZoomPreset -> selectZoomPreset(event.presetIndex)
+            is CameraEvent.DismissZoomControls -> dismissZoomControls()
         }
     }
 
@@ -482,15 +485,51 @@ class CameraViewModel @Inject constructor(
     }
 
     /**
+     * Toggle zoom controls visibility
+     */
+    private fun toggleZoomControls() {
+        _uiState.update { it.copy(showZoomControls = !it.showZoomControls) }
+        Log.d(TAG, "Zoom controls toggled: ${_uiState.value.showZoomControls}")
+    }
+
+    /**
+     * Select zoom preset and apply zoom
+     */
+    private fun selectZoomPreset(presetIndex: Int) {
+        val presets = _uiState.value.availableZoomPresets
+        if (presetIndex in presets.indices) {
+            val zoomRatio = presets[presetIndex]
+            _uiState.update { it.copy(selectedPresetIndex = presetIndex) }
+            setZoom(zoomRatio)
+            Log.d(TAG, "Zoom preset selected: ${presetIndex} (${zoomRatio}x)")
+        }
+    }
+
+    /**
+     * Dismiss zoom controls
+     */
+    private fun dismissZoomControls() {
+        _uiState.update { it.copy(showZoomControls = false) }
+        Log.d(TAG, "Zoom controls dismissed")
+    }
+
+    /**
      * Update camera capabilities (zoom range, exposure range)
      */
     private fun updateCameraCapabilities() {
         cameraManager.getZoomState()?.value?.let { zoomState ->
+            // Get available zoom presets based on device capabilities
+            val presets = cameraManager.getAvailableZoomPresets()
+
             _uiState.update {
                 it.copy(
                     minZoomRatio = zoomState.minZoomRatio,
                     maxZoomRatio = zoomState.maxZoomRatio,
-                    zoomRatio = zoomState.zoomRatio
+                    zoomRatio = zoomState.zoomRatio,
+                    availableZoomPresets = presets,
+                    selectedPresetIndex = presets.indexOfFirst { preset ->
+                        kotlin.math.abs(preset - zoomState.zoomRatio) < 0.15f
+                    }.takeIf { it >= 0 } ?: 0
                 )
             }
         }
